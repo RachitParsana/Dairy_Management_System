@@ -1,0 +1,223 @@
+/**
+ * Dairy Management System - Delivery Boy / Partner Theme
+ * Theme: Blue Palette (Mobile-First Operational Experience)
+ */
+
+:root {
+  --dms-db-primary: #2563eb;
+  --dms-db-primary-hover: #1d4ed8;
+  --dms-db-primary-light: #eff6ff;
+  --dms-db-primary-border: #bfdbfe;
+  --dms-db-sidebar-bg: #1e3a8a;
+  --dms-db-sidebar-text: #e2e8f0;
+  --dms-db-sidebar-hover-bg: #1e40af;
+  --dms-db-sidebar-active-bg: #2563eb;
+  --dms-db-accent: #3b82f6;
+}
+
+/* Delivery Boy Sidebar Theming */
+.sidebar-deliveryboy {
+  background-color: var(--dms-db-sidebar-bg) !important;
+  color: #f1f5f9;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.sidebar-deliveryboy .sidebar-header {
+  background-color: #172554;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 1rem 1.25rem;
+}
+
+.sidebar-deliveryboy .sidebar-brand {
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  text-decoration: none;
+}
+
+.sidebar-deliveryboy .sidebar-brand .brand-badge {
+  background-color: rgba(59, 130, 246, 0.25);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  font-size: 0.6875rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.sidebar-deliveryboy .sidebar-nav .nav-item {
+  margin: 0.2rem 0.75rem;
+}
+
+.sidebar-deliveryboy .sidebar-nav .nav-link {
+  color: #cbd5e1;
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.65rem 0.875rem;
+  border-radius: 0.5rem;
+  transition: all 0.18s ease;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.sidebar-deliveryboy .sidebar-nav .nav-link .nav-icon {
+  color: #94a3b8;
+  font-size: 1.15rem;
+  margin-right: 0.75rem;
+  width: 1.25rem;
+  text-align: center;
+  transition: color 0.18s ease;
+}
+
+.sidebar-deliveryboy .sidebar-nav .nav-link:hover {
+  background-color: var(--dms-db-sidebar-hover-bg);
+  color: #ffffff;
+}
+
+.sidebar-deliveryboy .sidebar-nav .nav-link:hover .nav-icon {
+  color: #93c5fd;
+}
+
+.sidebar-deliveryboy .sidebar-nav .nav-link.active {
+  background-color: var(--dms-db-sidebar-active-bg);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.sidebar-deliveryboy .sidebar-nav .nav-link.active .nav-icon {
+  color: #60a5fa;
+}
+
+.sidebar-deliveryboy .sidebar-nav .nav-title {
+  color: #94a3b8;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.85rem 1rem 0.35rem 1rem;
+}
+
+.sidebar-deliveryboy .sidebar-footer {
+  background-color: #172554;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.75rem 1.25rem;
+}
+
+/* Delivery Boy Header Theming */
+.header-deliveryboy {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+}
+
+.header-deliveryboy .header-brand-title {
+  color: #1e3a8a;
+}
+
+.header-deliveryboy .badge-role-deliveryboy {
+  background-color: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+}
+
+/* Delivery Boy Primary Buttons */
+.btn-db-primary {
+  background-color: var(--dms-db-primary);
+  border-color: var(--dms-db-primary);
+  color: #ffffff;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  padding: 0.55rem 1.15rem;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.18s ease;
+}
+
+.btn-db-primary:hover,
+.btn-db-primary:focus {
+  background-color: var(--dms-db-primary-hover);
+  border-color: var(--dms-db-primary-hover);
+  color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+.btn-db-outline {
+  border: 1px solid var(--dms-db-primary);
+  color: var(--dms-db-primary);
+  background-color: transparent;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  padding: 0.55rem 1.15rem;
+  min-height: 42px;
+  transition: all 0.18s ease;
+}
+
+.btn-db-outline:hover {
+  background-color: var(--dms-db-primary);
+  color: #ffffff;
+}
+
+/* Delivery Boy Stat Icon Backgrounds */
+.icon-db-bg {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+/* Delivery Boy Form Control Overrides */
+.form-control-dms:focus,
+.form-select-dms:focus {
+  border-color: var(--dms-db-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Mobile Quick Quantity Buttons */
+.quick-qty-btn {
+  min-height: 44px;
+  min-width: 58px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border-radius: 0.5rem;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #1e293b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.quick-qty-btn:hover {
+  background-color: #eff6ff;
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
+.quick-qty-btn:active {
+  background-color: #dbeafe;
+  transform: scale(0.97);
+}
+
+/* Mobile Friendly Touch Spacing */
+@media (max-width: 575.98px) {
+  .btn-touch-lg {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+}

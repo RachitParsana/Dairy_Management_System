@@ -1,8 +1,374 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    Layout = "_LayoutAdmin";
+    ViewData["Title"] = "Admin Dashboard";
+    ViewData["ActiveMenu"] = "Dashboard";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<!-- Demonstration Notice Banner (Correction 1) -->
+<div class="alert alert-warning border-warning shadow-sm d-flex align-items-center gap-3 mb-4" role="alert">
+    <i class="cil-info fs-4 text-warning flex-shrink-0"></i>
+    <div class="flex-grow-1">
+        <strong>DEMO DATA — NOT REAL:</strong> This view is a frontend foundation preview showcasing layout structure, typography, and UI components. All statistics, financial amounts, and ledger entries are visual placeholders and do not represent live system data.
+    </div>
+    <div class="flex-shrink-0 d-none d-md-block">
+        <a href="~/Home/Privacy" class="btn btn-sm btn-outline-dark d-inline-flex align-items-center gap-1">
+            <i class="cil-bike"></i> Preview Delivery Boy Portal
+        </a>
+    </div>
+</div>
+
+<!-- Environment & Status Header Bar -->
+<div class="card border-0 bg-white shadow-sm mb-4">
+    <div class="card-body py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-success text-white px-2 py-1">Admin Portal</span>
+                <span class="badge bg-secondary-subtle text-secondary border">Frontend Foundation Preview</span>
+            </div>
+            <p class="mb-0 text-muted small mt-1">
+                CoreUI Free Bootstrap 5 integration with custom Emerald Admin theme.
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-light text-secondary border px-3 py-2 font-tabular">
+                System Status: Ready for Backend Integration
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Five Metric Summary Cards (Neutral Placeholders per Correction 1) -->
+<div class="row g-3 mb-4">
+    <!-- Card 1: Total Customers -->
+    <div class="col-sm-6 col-xl">
+        <div class="card-stat p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="stat-label">Total Customers</span>
+                <div class="stat-icon icon-admin-bg">
+                    <i class="cil-user"></i>
+                </div>
+            </div>
+            <div class="stat-value font-tabular">--</div>
+            <div class="stat-subtitle text-muted small">
+                Awaiting live customer records
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 2: Active Delivery Boys -->
+    <div class="col-sm-6 col-xl">
+        <div class="card-stat p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="stat-label">Active Delivery Boys</span>
+                <div class="stat-icon icon-admin-bg">
+                    <i class="cil-bike"></i>
+                </div>
+            </div>
+            <div class="stat-value font-tabular">--</div>
+            <div class="stat-subtitle text-muted small">
+                Awaiting route assignment
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 3: Litres Delivered Today -->
+    <div class="col-sm-6 col-xl">
+        <div class="card-stat p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="stat-label">Delivered Today</span>
+                <div class="stat-icon icon-admin-bg">
+                    <i class="cil-drop"></i>
+                </div>
+            </div>
+            <div class="stat-value font-tabular">-- <span class="fs-6 text-muted fw-normal">L</span></div>
+            <div class="stat-subtitle text-muted small">
+                No dispatch recorded
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 4: Monthly Billing Total -->
+    <div class="col-sm-6 col-xl">
+        <div class="card-stat p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="stat-label">Monthly Billing Total</span>
+                <div class="stat-icon icon-admin-bg">
+                    <i class="cil-calculator"></i>
+                </div>
+            </div>
+            <div class="stat-value font-tabular"><span class="financial-currency">₹</span>--</div>
+            <div class="stat-subtitle text-muted small">
+                Billing cycle uncalculated
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 5: Pending Payments -->
+    <div class="col-sm-6 col-xl">
+        <div class="card-stat p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="stat-label">Pending Payments</span>
+                <div class="stat-icon" style="background-color: #fef2f2; color: #dc2626;">
+                    <i class="cil-warning"></i>
+                </div>
+            </div>
+            <div class="stat-value font-tabular text-secondary"><span class="financial-currency">₹</span>--</div>
+            <div class="stat-subtitle text-muted small">
+                No overdue records loaded
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Row: Financial Operations Table & Fast Action Panel -->
+<div class="row g-4 mb-4">
+    <!-- Left Column: Financial Data Table Preview -->
+    <div class="col-xl-8">
+        <div class="card-dms mb-4">
+            <div class="card-header bg-white">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="cil-description text-success"></i>
+                    <span>Daily Delivery &amp; Financial Ledger</span>
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle small ms-2">DEMO PREVIEW</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-light text-secondary border">Nov 16, 2026</span>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" title="Export Ledger" disabled>
+                        <i class="cil-cloud-download me-1"></i> Export
+                    </button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dms table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Customer Name</th>
+                            <th>Milk Category</th>
+                            <th class="text-end">Qty / Units</th>
+                            <th class="text-end">Unit Price</th>
+                            <th class="text-end">Total Amount</th>
+                            <th class="text-center">Daily Delivery Status</th>
+                            <th class="text-center">Payment Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Row 1: Completed status -->
+                        <tr>
+                            <td>
+                                <div class="fw-semibold text-dark">Sunil Sharma</div>
+                                <div class="text-muted small">Route 1 &bull; House #104</div>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">Cow Milk</span></td>
+                            <td class="text-end font-tabular fw-semibold">2.00 L</td>
+                            <td class="text-end font-tabular text-muted">₹ 60.00</td>
+                            <td class="text-end font-tabular fw-bold text-dark">₹ 120.00</td>
+                            <td class="text-center"><span class="badge-status badge-status-completed">Completed</span></td>
+                            <td class="text-center"><span class="badge-status badge-paid">Paid</span></td>
+                        </tr>
+                        <!-- Row 2: Completed status -->
+                        <tr>
+                            <td>
+                                <div class="fw-semibold text-dark">Priya Verma</div>
+                                <div class="text-muted small">Route 2 &bull; Flat 4B</div>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">Buffalo Milk</span></td>
+                            <td class="text-end font-tabular fw-semibold">1.50 L</td>
+                            <td class="text-end font-tabular text-muted">₹ 72.00</td>
+                            <td class="text-end font-tabular fw-bold text-dark">₹ 108.00</td>
+                            <td class="text-center"><span class="badge-status badge-status-completed">Completed</span></td>
+                            <td class="text-center"><span class="badge-status badge-paid">Paid</span></td>
+                        </tr>
+                        <!-- Row 3: Completed with Partial payment -->
+                        <tr>
+                            <td>
+                                <div class="fw-semibold text-dark">Rajesh Mehra</div>
+                                <div class="text-muted small">Route 1 &bull; Villa 12</div>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">Cow Milk</span></td>
+                            <td class="text-end font-tabular fw-semibold">3.00 L</td>
+                            <td class="text-end font-tabular text-muted">₹ 60.00</td>
+                            <td class="text-end font-tabular fw-bold text-dark">₹ 180.00</td>
+                            <td class="text-center"><span class="badge-status badge-status-completed">Completed</span></td>
+                            <td class="text-center"><span class="badge-status badge-partial">Partial</span></td>
+                        </tr>
+                        <!-- Row 4: Approved Vacation on file -> Delivery status is strictly Not Delivered (Correction 2) -->
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="fw-semibold text-dark">Amit Patel</span>
+                                    <span class="badge-vacation-indicator" title="Separate approved vacation record on file">
+                                        <i class="cil-calendar"></i> Approved Vacation
+                                    </span>
+                                </div>
+                                <div class="text-muted small">Route 4 &bull; House #88</div>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">Full Cream Milk</span></td>
+                            <td class="text-end font-tabular fw-semibold text-muted">0.00 L</td>
+                            <td class="text-end font-tabular text-muted">₹ 68.00</td>
+                            <td class="text-end font-tabular fw-bold text-muted">₹ 0.00</td>
+                            <td class="text-center"><span class="badge-status badge-status-notdelivered">Not Delivered</span></td>
+                            <td class="text-center"><span class="badge-status badge-inactive">Uncharged</span></td>
+                        </tr>
+                        <!-- Row 5: Pending status -->
+                        <tr>
+                            <td>
+                                <div class="fw-semibold text-dark">Deepak Joshi</div>
+                                <div class="text-muted small">Route 3 &bull; Block C-202</div>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">Buffalo Milk</span></td>
+                            <td class="text-end font-tabular fw-semibold">2.00 L</td>
+                            <td class="text-end font-tabular text-muted">₹ 72.00</td>
+                            <td class="text-end font-tabular fw-bold text-dark">₹ 144.00</td>
+                            <td class="text-center"><span class="badge-status badge-status-pending">Pending</span></td>
+                            <td class="text-center"><span class="badge-status badge-unpaid">Unpaid</span></td>
+                        </tr>
+                        <!-- Row 6: Completed non-liquid category -->
+                        <tr>
+                            <td>
+                                <div class="fw-semibold text-dark">Kavita Gupta</div>
+                                <div class="text-muted small">Route 5 &bull; House #15</div>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">Curd / Dahi (Kg)</span></td>
+                            <td class="text-end font-tabular fw-semibold">1.00 Kg</td>
+                            <td class="text-end font-tabular text-muted">₹ 90.00</td>
+                            <td class="text-end font-tabular fw-bold text-dark">₹ 90.00</td>
+                            <td class="text-center"><span class="badge-status badge-status-completed">Completed</span></td>
+                            <td class="text-center"><span class="badge-status badge-paid">Paid</span></td>
+                        </tr>
+                        <!-- Row 7: Not Delivered status -->
+                        <tr>
+                            <td>
+                                <div class="fw-semibold text-dark">Vikram Singhania</div>
+                                <div class="text-muted small">Route 2 &bull; House #41</div>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">Cow Milk</span></td>
+                            <td class="text-end font-tabular fw-semibold text-danger">0.00 L</td>
+                            <td class="text-end font-tabular text-muted">₹ 60.00</td>
+                            <td class="text-end font-tabular fw-bold text-muted">₹ 0.00</td>
+                            <td class="text-center"><span class="badge-status badge-status-notdelivered">Not Delivered</span></td>
+                            <td class="text-center"><span class="badge-status badge-inactive">Uncharged</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer bg-white border-top py-2 px-3 d-flex justify-content-between align-items-center">
+                <span class="text-muted small">Visual demo preview &bull; 7 sample ledger rows displayed</span>
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item disabled"><a class="page-link" href="#">Prev</a></li>
+                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item disabled"><a class="page-link" href="#">Next</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Admin Operations & Quick Allocation Form Preview -->
+    <div class="col-xl-4">
+        <!-- Sample Form: Customer Subscription Setting -->
+        <div class="card-dms mb-4">
+            <div class="card-header bg-white">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="cil-settings text-success"></i>
+                    <span>Customer Subscription Setting</span>
+                </div>
+                <span class="badge bg-secondary-subtle text-secondary small">Demo Form</span>
+            </div>
+            <div class="card-body">
+                <form onsubmit="event.preventDefault();">
+                    <div class="mb-3">
+                        <label class="form-dms-label" for="custSelect">Select Customer</label>
+                        <select class="form-select form-select-dms" id="custSelect">
+                            <option selected>Sunil Sharma (CUST-0012)</option>
+                            <option>Priya Verma (CUST-0015)</option>
+                            <option>Rajesh Mehra (CUST-0021)</option>
+                            <option>Amit Patel (CUST-0044) - On Vacation</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-dms-label" for="catSelect">Milk Category &amp; Unit</label>
+                        <select class="form-select form-select-dms" id="catSelect">
+                            <option selected>Cow Milk (₹60.00 / Litre)</option>
+                            <option>Buffalo Milk (₹72.00 / Litre)</option>
+                            <option>Full Cream Milk (₹68.00 / Litre)</option>
+                            <option>Fresh Paneer (₹360.00 / Kg)</option>
+                        </select>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-dms-label" for="dailyQty">Daily Quantity</label>
+                            <input type="number" step="0.5" class="form-control form-control-dms" id="dailyQty" value="2.0" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-dms-label" for="shiftPref">Delivery Shift</label>
+                            <select class="form-select form-select-dms" id="shiftPref">
+                                <option selected>Morning</option>
+                                <option>Evening</option>
+                                <option>Both</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-dms-label" for="assignedDB">Assigned Delivery Boy</label>
+                        <select class="form-select form-select-dms" id="assignedDB">
+                            <option selected>Ramesh Kumar (Route 4)</option>
+                            <option>Suresh Yadav (Route 1)</option>
+                            <option>Manoj Singh (Route 2)</option>
+                        </select>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-admin-primary">
+                            <i class="cil-check-alt me-1"></i> Save Subscription Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- UI Component Palette Showcase: Status Badges -->
+        <div class="card-dms">
+            <div class="card-header bg-white">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="cil-applications text-success"></i>
+                    <span>Approved Status Badges</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <div class="text-muted small fw-semibold mb-1 text-uppercase">Daily Delivery Statuses (Approved):</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge-status badge-status-completed">Completed</span>
+                        <span class="badge-status badge-status-pending">Pending</span>
+                        <span class="badge-status badge-status-notdelivered">Not Delivered</span>
+                    </div>
+                </div>
+
+                <div class="my-3 pt-2 border-top">
+                    <div class="text-muted small fw-semibold mb-1 text-uppercase">Vacation Management Indicator:</div>
+                    <div>
+                        <span class="badge-vacation-indicator">
+                            <i class="cil-calendar"></i> Approved Vacation
+                        </span>
+                        <span class="small text-muted ms-2">(Independent record indicator)</span>
+                    </div>
+                </div>
+
+                <div class="pt-2 border-top">
+                    <div class="text-muted small fw-semibold mb-1 text-uppercase">Payment &amp; Entity Statuses:</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge-status badge-paid">Paid</span>
+                        <span class="badge-status badge-partial">Partial</span>
+                        <span class="badge-status badge-unpaid">Unpaid</span>
+                        <span class="badge-status badge-active">Active</span>
+                        <span class="badge-status badge-inactive">Inactive</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

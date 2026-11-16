@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Dairy Management System Admin</title>
+
+    <!-- Inter Font -->
+    <link rel="stylesheet" href="~/lib/inter/css/inter.css" />
+
+    <!-- CoreUI CSS (Bootstrap 5 compatible) -->
+    <link rel="stylesheet" href="~/lib/coreui/css/coreui.min.css" />
+
+    <!-- CoreUI Icons Free -->
+    <link rel="stylesheet" href="~/lib/coreui-icons/css/free.min.css" />
+
+    <!-- DMS Core & Admin Theme Stylesheets -->
+    <link rel="stylesheet" href="~/css/dms-core.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/dms-admin.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <!-- Collapsible Admin Sidebar -->
+    <div class="sidebar sidebar-fixed border-end sidebar-admin" id="sidebar">
+        <div class="sidebar-header border-bottom">
+            <a class="sidebar-brand text-decoration-none" href="~/Home/Index">
+                <i class="cil-drop fs-4 text-success" style="color: #34d399 !important;"></i>
+                <span>DairyMS</span>
+                <span class="brand-badge ms-auto">Admin</span>
+            </a>
+            <button class="btn-close d-lg-none" type="button" aria-label="Close" data-dms-toggle="sidebar"></button>
+        </div>
+
+        <!-- Strict 10-Item Sidebar Navigation Order -->
+        <ul class="sidebar-nav" data-coreui="navigation">
+            <li class="nav-item">
+                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "Dashboard" || ViewData["ActiveMenu"] == null ? "active" : "")" href="~/Home/Index">
+                    <i class="nav-icon cil-speedometer"></i> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "DeliveryBoy" ? "active" : "")" href="#delivery-boy-management">
+                    <i class="nav-icon cil-bike"></i> Delivery Boy Management
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "Customers" ? "active" : "")" href="#customer-management">
+                    <i class="nav-icon cil-user"></i> Customer Management
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "Billing" ? "active" : "")" href="#monthly-billing-management">
+                    <i class="nav-icon cil-description"></i> Monthly Billing Management
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "Reports" ? "active" : "")" href="#reports">
+                    <i class="nav-icon cil-chart-line"></i> Reports
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "Exports" ? "active" : "")" href="#export-management">
+                    <i class="nav-icon cil-cloud-download"></i> Export Management
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "Notifications" ? "active" : "")" href="#notification-management">
+                    <i class="nav-icon cil-bell"></i> Notification Management
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "Settings" ? "active" : "")" href="#settings">
+                    <i class="nav-icon cil-settings"></i> Settings
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "Help" ? "active" : "")" href="#help-support">
+                    <i class="nav-icon cil-info"></i> Help &amp; Support
+                </a>
+            </li>
+            <li class="nav-item mt-3 pt-3 border-top border-secondary border-opacity-25">
+                <a class="nav-link text-danger-emphasis" href="#logout">
+                    <i class="nav-icon cil-account-logout text-danger"></i> Logout
+                </a>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer border-top d-none d-md-flex justify-content-end p-2">
+            <button class="sidebar-toggler" type="button" data-coreui-toggle="unfoldable" title="Toggle fold"></button>
+        </div>
+    </div>
+
+    <!-- Main Content Wrapper -->
+    <div class="wrapper d-flex flex-column min-vh-100 bg-light">
+        <!-- Top Header Bar -->
+        <header class="header header-sticky header-admin p-0 mb-4">
+            <div class="container-fluid px-4 py-2 d-flex align-items-center justify-content-between">
+                <!-- Mobile / Desktop Sidebar Toggler & Brand Title -->
+                <div class="d-flex align-items-center gap-3">
+                    <button class="header-toggler btn btn-sm btn-outline-secondary border-0 p-1" type="button" data-dms-toggle="sidebar" aria-label="Toggle navigation">
+                        <i class="cil-menu fs-4"></i>
+                    </button>
+                    <div class="d-flex align-items-center gap-2">
+                        <h1 class="header-brand-title mb-0">Dairy Management System - Admin</h1>
+                        <span class="badge-role-admin d-none d-sm-inline-block">System Administrator</span>
+                    </div>
+                </div>
+
+                <!-- Header Actions: Temporary Preview Navigation, Notifications, Profile Dropdown -->
+                <div class="d-flex align-items-center gap-3">
+                    <!-- Temporary frontend preview shortcut -->
+                    <a class="btn btn-sm btn-outline-primary d-none d-md-inline-flex align-items-center gap-1" href="~/Home/Privacy" title="Temporary frontend preview of Delivery Boy layout">
+                        <i class="cil-bike"></i>
+                        <span>Preview Delivery Boy Layout</span>
+                    </a>
+
+                    <!-- Notification Bell -->
+                    <div class="dropdown">
+                        <button class="btn btn-link text-secondary p-1 position-relative text-decoration-none" type="button" data-coreui-toggle="dropdown" aria-expanded="false" title="Notifications">
+                            <i class="cil-bell fs-5"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" style="min-width: 280px;">
+                            <li class="dropdown-header fw-bold text-uppercase fs-7 text-muted border-bottom pb-2">
+                                System Notifications (Preview)
+                            </li>
+                            <li class="p-3 text-center text-muted small">
+                                <i class="cil-bell text-secondary fs-4 d-block mb-1"></i>
+                                No active unread notifications
+                            </li>
+                            <li class="border-top pt-1 text-center">
+                                <a class="dropdown-item small text-primary fw-medium" href="#notification-management">View notification settings</a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Current User Profile Dropdown -->
+                    <div class="dropdown">
+                        <a class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle" href="#" role="button" data-coreui-toggle="dropdown" aria-expanded="false">
+                            <span class="header-user-avatar border shadow-sm">AD</span>
+                            <span class="d-none d-lg-inline-block fw-semibold text-dark small">Administrator</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
+                            <li class="dropdown-header small text-muted">Signed in as Admin</li>
+                            <li><a class="dropdown-item small" href="#settings"><i class="cil-settings me-2"></i> Settings</a></li>
+                            <li><a class="dropdown-item small" href="#help-support"><i class="cil-info me-2"></i> Help &amp; Support</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item small text-danger" href="#logout"><i class="cil-account-logout me-2"></i> Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Dynamic Content Area -->
+        <main class="body flex-grow-1 px-3 px-md-4">
+            <div class="container-fluid px-0">
+                @RenderBody()
+            </div>
+        </main>
+
+        <!-- Admin Footer -->
+        <footer class="footer mt-auto py-3 bg-white border-top text-muted small px-4 d-flex flex-wrap justify-content-between align-items-center">
+            <div>
+                <span class="fw-semibold text-dark">Dairy Management System</span> &copy; 2026. All rights reserved.
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                    <i class="cil-check-alt me-1"></i> Operational
+                </span>
+                <span>Version 1.0 (Admin Edition)</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- CoreUI Bundle JS (Includes Popper & Bootstrap 5) -->
+    <script src="~/lib/coreui/js/coreui.bundle.min.js"></script>
+    <script src="~/js/dms-main.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

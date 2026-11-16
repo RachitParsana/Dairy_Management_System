@@ -1,0 +1,368 @@
+/**
+ * Dairy Management System - Core UI Foundation
+ * Shared typography, layout utilities, financial tables, status badges, and cards
+ */
+
+:root {
+  --dms-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --dms-border-radius: 0.5rem;
+  --dms-border-radius-lg: 0.75rem;
+  --dms-border-radius-sm: 0.375rem;
+  --dms-card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.07), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  --dms-card-shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+  --dms-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Global Typography & Layout */
+body {
+  font-family: var(--dms-font-sans);
+  color: #1e293b;
+  background-color: #f8fafc;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Responsive Layout Wrapper & Sidebar Spacing (Stage 5 Responsiveness) */
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  transition: padding-left 0.15s ease-in-out;
+}
+
+@media (min-width: 992px) {
+  .sidebar-fixed ~ .wrapper {
+    padding-left: var(--cui-sidebar-occupy-start, 16rem);
+  }
+  .sidebar.hide ~ .wrapper,
+  .sidebar-fixed.hide ~ .wrapper {
+    padding-left: 0;
+  }
+  .sidebar-narrow-unfoldable:not(:hover) ~ .wrapper {
+    padding-left: 4rem;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .sidebar-fixed ~ .wrapper {
+    padding-left: 0;
+  }
+}
+
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+  font-family: var(--dms-font-sans);
+  font-weight: 600;
+  color: #0f172a;
+  letter-spacing: -0.015em;
+}
+
+/* Tabular & Financial Numbers */
+.font-tabular,
+.financial-num,
+.table-financial td.text-end,
+.metric-value {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.financial-currency {
+  font-weight: 500;
+  color: #64748b;
+  margin-right: 2px;
+}
+
+/* Metric / Stat Cards */
+.card-stat {
+  border: 1px solid #e2e8f0;
+  border-radius: var(--dms-border-radius-lg);
+  box-shadow: var(--dms-card-shadow);
+  transition: var(--dms-transition);
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.card-stat:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--dms-card-shadow-hover);
+}
+
+.card-stat .stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--dms-border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.card-stat .stat-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+}
+
+.card-stat .stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.card-stat .stat-subtitle {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin-top: 0.35rem;
+}
+
+/* Standard Content Cards */
+.card-dms {
+  border: 1px solid #e2e8f0;
+  border-radius: var(--dms-border-radius-lg);
+  box-shadow: var(--dms-card-shadow);
+  background: #ffffff;
+  margin-bottom: 1.5rem;
+}
+
+.card-dms .card-header {
+  background-color: transparent;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 1rem 1.25rem;
+  font-weight: 600;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-dms .card-body {
+  padding: 1.25rem;
+}
+
+/* Polished Financial & Operational Data Tables */
+.table-dms {
+  width: 100%;
+  margin-bottom: 0;
+  vertical-align: middle;
+}
+
+.table-dms thead th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.75rem 1rem;
+  white-space: nowrap;
+}
+
+.table-dms tbody td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.875rem;
+  color: #334155;
+}
+
+.table-dms tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.table-dms tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Semantic Status Badges - Approved Daily Delivery Statuses: Completed, Pending, Not Delivered */
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.35em 0.65em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.badge-status::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* 1. Completed Delivery */
+.badge-status-completed,
+.badge-completed {
+  background-color: #dcfce7;
+  color: #166534;
+}
+.badge-status-completed::before,
+.badge-completed::before { background-color: #16a34a; }
+
+/* 2. Pending Delivery */
+.badge-status-pending,
+.badge-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+.badge-status-pending::before,
+.badge-pending::before { background-color: #d97706; }
+
+/* 3. Not Delivered */
+.badge-status-notdelivered,
+.badge-notdelivered {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+.badge-status-notdelivered::before,
+.badge-notdelivered::before { background-color: #dc2626; }
+
+/* Independent Vacation Indicator (Not a delivery status) */
+.badge-vacation-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25em 0.6em;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+/* Master Data Entity & Payment Statuses */
+.badge-active {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+.badge-active::before { background-color: #059669; }
+
+.badge-inactive {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+.badge-inactive::before { background-color: #94a3b8; }
+
+.badge-paid {
+  background-color: #dcfce7;
+  color: #166534;
+}
+.badge-paid::before { background-color: #16a34a; }
+
+.badge-partial {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+.badge-partial::before { background-color: #d97706; }
+
+.badge-unpaid {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+.badge-unpaid::before { background-color: #dc2626; }
+
+.badge-shift-morning {
+  background-color: #fef9c3;
+  color: #854d0e;
+  border: 1px solid #fde047;
+}
+
+.badge-shift-evening {
+  background-color: #e0e7ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+}
+
+/* Polished Form Controls */
+.form-dms-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #334155;
+  margin-bottom: 0.375rem;
+}
+
+.form-control-dms,
+.form-select-dms {
+  border-radius: var(--dms-border-radius);
+  border: 1px solid #cbd5e1;
+  padding: 0.55rem 0.875rem;
+  font-size: 0.875rem;
+  color: #1e293b;
+  transition: var(--dms-transition);
+}
+
+.form-control-dms:focus,
+.form-select-dms:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Header & Navigation Polish */
+.header-brand-title {
+  font-weight: 700;
+  font-size: 1.125rem;
+  letter-spacing: -0.02em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (max-width: 575.98px) {
+  .header-brand-title {
+    font-size: 0.9375rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+}
+
+.header-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #e2e8f0;
+  color: #334155;
+  font-weight: 600;
+  font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Toast Notifications */
+.dms-toast-container {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 1090;
+}
+
+.dms-alert {
+  border-radius: var(--dms-border-radius);
+  border: none;
+  box-shadow: var(--dms-card-shadow-hover);
+  padding: 0.875rem 1.25rem;
+}
+
+/* Responsive Utilities */
+@media (max-width: 767.98px) {
+  .card-stat .stat-value {
+    font-size: 1.5rem;
+  }
+  .table-responsive-stack thead {
+    display: none;
+  }
+}

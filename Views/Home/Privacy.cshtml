@@ -1,6 +1,366 @@
 ﻿@{
-    ViewData["Title"] = "Privacy Policy";
+    Layout = "_LayoutDeliveryBoy";
+    ViewData["Title"] = "Delivery Partner Portal";
+    ViewData["ActiveMenu"] = "DailyMilkEntry";
 }
-<h1>@ViewData["Title"]</h1>
 
-<p>Use this page to detail your site's privacy policy.</p>
+<!-- Demonstration Notice Banner (Correction 1) -->
+<div class="alert alert-warning border-warning shadow-sm d-flex align-items-center gap-3 mb-4" role="alert">
+    <i class="cil-info fs-4 text-warning flex-shrink-0"></i>
+    <div class="flex-grow-1">
+        <strong>DEMO DATA — NOT REAL:</strong> This view is a mobile-first frontend foundation preview for delivery field operations. All statistics, route customer stops, and entry cards are visual demonstration placeholders and do not represent live operational records.
+    </div>
+    <div class="flex-shrink-0 d-none d-md-block">
+        <a href="~/Home/Index" class="btn btn-sm btn-outline-dark d-inline-flex align-items-center gap-1">
+            <i class="cil-drop"></i> Preview Admin Portal
+        </a>
+    </div>
+</div>
+
+<!-- Delivery Boy Route Header Bar -->
+<div class="card border-0 bg-white shadow-sm mb-4">
+    <div class="card-body py-3 px-3 px-md-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle p-2 text-white bg-primary d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                <i class="cil-bike fs-5"></i>
+            </div>
+            <div>
+                <div class="d-flex align-items-center gap-2">
+                    <h5 class="mb-0 fw-bold text-dark">Route 4 &bull; North Sector (Assigned Route)</h5>
+                    <span class="badge bg-primary text-white">Morning Shift</span>
+                </div>
+                <div class="text-muted small">Partner: Ramesh Kumar &bull; Assigned Customers Only</div>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-light text-secondary border px-3 py-2 font-tabular">
+                Nov 16, 2026
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Operational Metric Summary Cards (Neutral Placeholders per Correction 1 & 3 - No Payment Collection) -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card-stat p-3 h-100">
+            <div class="stat-label">Assigned Route Customers</div>
+            <div class="stat-value font-tabular text-primary">--</div>
+            <div class="stat-subtitle text-muted small">Awaiting route dispatch</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card-stat p-3 h-100">
+            <div class="stat-label">Completed Drops</div>
+            <div class="stat-value font-tabular text-success">--</div>
+            <div class="stat-subtitle text-muted small">Status: Completed</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card-stat p-3 h-100">
+            <div class="stat-label">Litres Dispatched</div>
+            <div class="stat-value font-tabular">-- <span class="fs-6 fw-normal text-muted">L</span></div>
+            <div class="stat-subtitle text-muted small">Category quantity total</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card-stat p-3 h-100">
+            <div class="stat-label">Pending Drops</div>
+            <div class="stat-value font-tabular text-warning">--</div>
+            <div class="stat-subtitle text-muted small">Status: Pending</div>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile-First Delivery Entry & Run-Sheet Area -->
+<div class="row g-4 mb-4">
+    <!-- Touch-Optimized Daily Milk Entry Form (Correction 3) -->
+    <div class="col-lg-5 col-xl-4">
+        <div class="card-dms shadow-sm">
+            <div class="card-header bg-white">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="cil-drop text-primary"></i>
+                    <span>Daily Milk Entry</span>
+                </div>
+                <span class="badge bg-secondary-subtle text-secondary small">Route 4 Assigned</span>
+            </div>
+            <div class="card-body">
+                <form id="milkEntryForm" onsubmit="event.preventDefault();">
+                    <!-- Delivery Shift Selector -->
+                    <div class="mb-3">
+                        <label class="form-dms-label d-block">Delivery Shift</label>
+                        <div class="btn-group w-100" role="group" aria-label="Shift Selector">
+                            <input type="radio" class="btn-check" name="shiftRadio" id="shiftMorning" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary" for="shiftMorning">
+                                <i class="cil-sun me-1"></i> Morning
+                            </label>
+
+                            <input type="radio" class="btn-check" name="shiftRadio" id="shiftEvening" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="shiftEvening">
+                                <i class="cil-moon me-1"></i> Evening
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Assigned Customers Only (Correction 3) -->
+                    <div class="mb-3">
+                        <label class="form-dms-label" for="assignedCustomerSelect">
+                            Assigned Customer <span class="text-muted fw-normal">(Route 4 Only)</span>
+                        </label>
+                        <select class="form-select form-select-dms" id="assignedCustomerSelect" onchange="toggleVacationState(this.value);">
+                            <option value="active-104" selected>#104 - Sunil Sharma (Standard 2.0 L)</option>
+                            <option value="active-108">#108 - Deepak Joshi (Standard 2.0 L)</option>
+                            <option value="active-112">#112 - Anita Rao (Standard 1.0 L)</option>
+                            <option value="active-115">#115 - Rajesh Mehra (Standard 3.0 L)</option>
+                            <option value="vacation-120">#120 - Amit Patel [APPROVED VACATION]</option>
+                        </select>
+                    </div>
+
+                    <!-- Vacation Notice Banner (Shown when customer has approved vacation) -->
+                    <div id="vacationAlertBox" class="alert alert-info border-info d-none p-2 small mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="cil-calendar text-info fs-5"></i>
+                            <div>
+                                <strong>Approved Vacation on File:</strong> Entry is locked for this customer. Zero delivery charges apply during approved leave.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Category-Specific Quantity Entry (Correction 3) -->
+                    <div class="mb-3">
+                        <label class="form-dms-label" for="entryCategorySelect">Product Category</label>
+                        <select class="form-select form-select-dms" id="entryCategorySelect">
+                            <option selected>Cow Milk</option>
+                            <option>Buffalo Milk</option>
+                            <option>Full Cream Milk</option>
+                            <option>Curd / Dahi (Kg)</option>
+                        </select>
+                    </div>
+
+                    <!-- Quantity with Mobile Quick-Add Buttons -->
+                    <div class="mb-3">
+                        <label class="form-dms-label" for="milkQuantityInput">Category Quantity</label>
+                        <div class="input-group mb-2">
+                            <input type="number" step="0.25" min="0" class="form-control form-control-dms fs-5 fw-bold text-center" id="milkQuantityInput" value="2.00">
+                            <span class="input-group-text bg-light text-muted fw-semibold">Units</span>
+                        </div>
+                        <div class="d-flex gap-2" id="quickQtyButtonGroup">
+                            <button type="button" class="quick-qty-btn flex-fill" data-add-qty="0.5">+ 0.5</button>
+                            <button type="button" class="quick-qty-btn flex-fill" data-add-qty="1.0">+ 1.0</button>
+                            <button type="button" class="quick-qty-btn flex-fill" data-add-qty="2.0">+ 2.0</button>
+                            <button type="button" class="quick-qty-btn flex-fill text-danger" onclick="document.getElementById('milkQuantityInput').value='0.00';">Clear</button>
+                        </div>
+                    </div>
+
+                    <!-- Strictly Approved Daily Delivery Statuses (Correction 2 & 3: Completed, Pending, Not Delivered) -->
+                    <div class="mb-3">
+                        <label class="form-dms-label">Daily Delivery Status</label>
+                        <div class="d-flex gap-2" id="deliveryStatusGroup">
+                            <div class="form-check flex-fill p-2 border rounded text-center">
+                                <input class="form-check-input" type="radio" name="dailyDeliveryStatus" id="statusCompleted" value="Completed" checked>
+                                <label class="form-check-label fw-semibold small text-success" for="statusCompleted">
+                                    Completed
+                                </label>
+                            </div>
+                            <div class="form-check flex-fill p-2 border rounded text-center">
+                                <input class="form-check-input" type="radio" name="dailyDeliveryStatus" id="statusPending" value="Pending">
+                                <label class="form-check-label fw-semibold small text-warning-emphasis" for="statusPending">
+                                    Pending
+                                </label>
+                            </div>
+                            <div class="form-check flex-fill p-2 border rounded text-center">
+                                <input class="form-check-input" type="radio" name="dailyDeliveryStatus" id="statusNotDelivered" value="NotDelivered">
+                                <label class="form-check-label fw-semibold small text-danger" for="statusNotDelivered">
+                                    Not Delivered
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Touch Button -->
+                    <div class="d-grid mt-4">
+                        <button type="submit" id="saveDeliveryBtn" class="btn btn-db-primary btn-touch-lg">
+                            <i class="cil-check fs-5"></i>
+                            <span>Save Entry</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Today's Assigned Run Sheet -->
+    <div class="col-lg-7 col-xl-8">
+        <div class="card-dms shadow-sm">
+            <div class="card-header bg-white">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="cil-task text-primary"></i>
+                    <span>Route 4 Assigned Run Sheet</span>
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle small ms-2">DEMO PREVIEW</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-light text-secondary border">Nov 16, 2026</span>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dms table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Stop #</th>
+                            <th>Customer &amp; Address</th>
+                            <th>Category</th>
+                            <th class="text-end">Qty</th>
+                            <th class="text-center">Daily Delivery Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Stop 1: Completed status -->
+                        <tr>
+                            <td class="fw-bold text-muted">01</td>
+                            <td>
+                                <div class="fw-semibold text-dark">Sunil Sharma</div>
+                                <div class="text-muted small">Flat 101, Sector 12</div>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">Cow Milk</span></td>
+                            <td class="text-end font-tabular fw-bold">2.00 L</td>
+                            <td class="text-center"><span class="badge-status badge-status-completed">Completed</span></td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-light border text-muted" type="button" disabled title="Entry already completed">
+                                    <i class="cil-check"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <!-- Stop 2: Approved Vacation on file -> Status is Not Delivered, entry locked (Correction 2 & 3) -->
+                        <tr class="table-light">
+                            <td class="fw-bold text-muted">02</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="fw-semibold text-dark">Amit Patel</span>
+                                    <span class="badge-vacation-indicator" title="Separate approved vacation record on file">
+                                        <i class="cil-calendar"></i> Approved Vacation
+                                    </span>
+                                </div>
+                                <div class="text-muted small">Villa 14, Sector 12 &bull; Active Leave Period</div>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">Full Cream Milk</span></td>
+                            <td class="text-end font-tabular text-muted">0.00 L</td>
+                            <td class="text-center"><span class="badge-status badge-status-notdelivered">Not Delivered</span></td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-secondary" type="button" onclick="selectVacationDemoCustomer();">
+                                    View Lock
+                                </button>
+                            </td>
+                        </tr>
+                        <!-- Stop 3: Pending status -->
+                        <tr>
+                            <td class="fw-bold text-primary">03</td>
+                            <td>
+                                <div class="fw-semibold text-dark">Deepak Joshi</div>
+                                <div class="text-muted small">Flat 204, Sector 14 &bull; Gate code #491</div>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">Buffalo Milk</span></td>
+                            <td class="text-end font-tabular fw-bold text-primary">2.00 L</td>
+                            <td class="text-center"><span class="badge-status badge-status-pending">Pending</span></td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-primary" type="button" onclick="selectActiveCustomer(1, '2.00');">
+                                    Deliver
+                                </button>
+                            </td>
+                        </tr>
+                        <!-- Stop 4: Pending status -->
+                        <tr>
+                            <td class="fw-bold text-muted">04</td>
+                            <td>
+                                <div class="fw-semibold text-dark">Anita Rao</div>
+                                <div class="text-muted small">House 22, Sector 14</div>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">Cow Milk</span></td>
+                            <td class="text-end font-tabular fw-bold">1.00 L</td>
+                            <td class="text-center"><span class="badge-status badge-status-pending">Pending</span></td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-secondary" type="button" onclick="selectActiveCustomer(2, '1.00');">
+                                    Select
+                                </button>
+                            </td>
+                        </tr>
+                        <!-- Stop 5: Pending status -->
+                        <tr>
+                            <td class="fw-bold text-muted">05</td>
+                            <td>
+                                <div class="fw-semibold text-dark">Rajesh Mehra</div>
+                                <div class="text-muted small">House 35, Sector 14</div>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">Cow Milk</span></td>
+                            <td class="text-end font-tabular fw-bold">3.00 L</td>
+                            <td class="text-center"><span class="badge-status badge-status-pending">Pending</span></td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-secondary" type="button" onclick="selectActiveCustomer(3, '3.00');">
+                                    Select
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer bg-white border-top py-2 px-3 d-flex justify-content-between align-items-center">
+                <span class="text-muted small">Demonstration Run Sheet &bull; Assigned Route 4 Customers</span>
+                <span class="text-muted small">Delivery statuses strictly: Completed &bull; Pending &bull; Not Delivered</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Correction 3: Demonstrate disabling entry fields during approved vacation dates
+    function toggleVacationState(val) {
+        const isVacation = val.startsWith('vacation');
+        const alertBox = document.getElementById('vacationAlertBox');
+        const qtyInput = document.getElementById('milkQuantityInput');
+        const catSelect = document.getElementById('entryCategorySelect');
+        const saveBtn = document.getElementById('saveDeliveryBtn');
+        const statusCompleted = document.getElementById('statusCompleted');
+        const statusPending = document.getElementById('statusPending');
+        const statusNotDelivered = document.getElementById('statusNotDelivered');
+        const qtyBtns = document.querySelectorAll('#quickQtyButtonGroup button');
+
+        if (isVacation) {
+            alertBox.classList.remove('d-none');
+            qtyInput.value = '0.00';
+            qtyInput.disabled = true;
+            catSelect.disabled = true;
+            saveBtn.disabled = true;
+            statusNotDelivered.checked = true;
+            statusCompleted.disabled = true;
+            statusPending.disabled = true;
+            statusNotDelivered.disabled = true;
+            qtyBtns.forEach(b => b.disabled = true);
+        } else {
+            alertBox.classList.add('d-none');
+            qtyInput.disabled = false;
+            catSelect.disabled = false;
+            saveBtn.disabled = false;
+            statusCompleted.disabled = false;
+            statusPending.disabled = false;
+            statusNotDelivered.disabled = false;
+            statusCompleted.checked = true;
+            qtyBtns.forEach(b => b.disabled = false);
+        }
+    }
+
+    function selectVacationDemoCustomer() {
+        const select = document.getElementById('assignedCustomerSelect');
+        select.value = 'vacation-120';
+        toggleVacationState(select.value);
+    }
+
+    function selectActiveCustomer(index, defaultQty) {
+        const select = document.getElementById('assignedCustomerSelect');
+        select.selectedIndex = index;
+        toggleVacationState(select.value);
+        document.getElementById('milkQuantityInput').value = defaultQty;
+    }
+</script>
+}
