@@ -1,21 +1,14 @@
-﻿@{
+﻿@using System.Security.Claims
+@{
     Layout = "_LayoutAdmin";
     ViewData["Title"] = "Admin Dashboard";
     ViewData["ActiveMenu"] = "Dashboard";
-}
 
-<!-- Demonstration Notice Banner (Correction 1) -->
-<div class="alert alert-warning border-warning shadow-sm d-flex align-items-center gap-3 mb-4" role="alert">
-    <i class="cil-info fs-4 text-warning flex-shrink-0"></i>
-    <div class="flex-grow-1">
-        <strong>DEMO DATA — NOT REAL:</strong> This view is a frontend foundation preview showcasing layout structure, typography, and UI components. All statistics, financial amounts, and ledger entries are visual placeholders and do not represent live system data.
-    </div>
-    <div class="flex-shrink-0 d-none d-md-block">
-        <a href="~/Home/Privacy" class="btn btn-sm btn-outline-dark d-inline-flex align-items-center gap-1">
-            <i class="cil-bike"></i> Preview Delivery Boy Portal
-        </a>
-    </div>
-</div>
+    var adminUsername = User.Identity?.Name ?? "admin";
+    var adminFullName = User.FindFirst(ClaimTypes.GivenName)?.Value;
+    var adminDisplayName = !string.IsNullOrWhiteSpace(adminFullName) ? adminFullName : adminUsername;
+    var adminPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value ?? "";
+}
 
 <!-- Environment & Status Header Bar -->
 <div class="card border-0 bg-white shadow-sm mb-4">
@@ -23,21 +16,35 @@
         <div>
             <div class="d-flex align-items-center gap-2">
                 <span class="badge bg-success text-white px-2 py-1">Admin Portal</span>
-                <span class="badge bg-secondary-subtle text-secondary border">Frontend Foundation Preview</span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle">Authenticated Session Active</span>
             </div>
-            <p class="mb-0 text-muted small mt-1">
-                CoreUI Free Bootstrap 5 integration with custom Emerald Admin theme.
+            <h5 class="fw-bold text-dark mt-2 mb-1">
+                Welcome back, @adminDisplayName
+            </h5>
+            <p class="mb-0 text-muted small">
+                Logged in as <strong>@@@adminUsername</strong> &bull; Role: Administrator &bull; Contact: @(string.IsNullOrEmpty(adminPhone) ? "N/A" : adminPhone)
             </p>
         </div>
         <div class="d-flex align-items-center gap-2">
             <span class="badge bg-light text-secondary border px-3 py-2 font-tabular">
-                System Status: Ready for Backend Integration
+                <i class="cil-calendar me-1"></i> @DateTime.Now.ToString("MMM dd, yyyy")
+            </span>
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
+                <i class="cil-check-circle me-1"></i> System Online
             </span>
         </div>
     </div>
 </div>
 
-<!-- Five Metric Summary Cards (Neutral Placeholders per Correction 1) -->
+<!-- Notice Banner: Foundation Scope & Metric Status -->
+<div class="alert alert-info border-info-subtle shadow-sm d-flex align-items-center gap-3 mb-4" role="alert">
+    <i class="cil-info fs-4 text-primary flex-shrink-0"></i>
+    <div class="flex-grow-1">
+        <strong>OPERATIONAL STATUS:</strong> Authentication and role-based access control are fully operational. Master data records (Customers, Delivery Routes, and Daily Ledgers) are awaiting Phase 3 master CRUD modules. Operational metrics display placeholder indicators.
+    </div>
+</div>
+
+<!-- Five Metric Summary Cards (Neutral Placeholders per Specification) -->
 <div class="row g-3 mb-4">
     <!-- Card 1: Total Customers -->
     <div class="col-sm-6 col-xl">
@@ -132,7 +139,7 @@
                     <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle small ms-2">DEMO PREVIEW</span>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-light text-secondary border">Nov 16, 2026</span>
+                    <span class="badge bg-light text-secondary border">@DateTime.Now.ToString("MMM dd, yyyy")</span>
                     <button class="btn btn-sm btn-outline-secondary" type="button" title="Export Ledger" disabled>
                         <i class="cil-cloud-download me-1"></i> Export
                     </button>
@@ -191,7 +198,7 @@
                             <td class="text-center"><span class="badge-status badge-status-completed">Completed</span></td>
                             <td class="text-center"><span class="badge-status badge-partial">Partial</span></td>
                         </tr>
-                        <!-- Row 4: Approved Vacation on file -> Delivery status is strictly Not Delivered (Correction 2) -->
+                        <!-- Row 4: Approved Vacation on file -> Delivery status is strictly Not Delivered -->
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center gap-2">

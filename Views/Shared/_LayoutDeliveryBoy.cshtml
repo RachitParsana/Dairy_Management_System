@@ -1,3 +1,14 @@
+@using System.Security.Claims
+@{
+    var dbUsername = User.Identity?.Name ?? "DeliveryBoy";
+    var dbFullName = User.FindFirst(ClaimTypes.GivenName)?.Value;
+    var dbDisplayName = !string.IsNullOrWhiteSpace(dbFullName) ? dbFullName : dbUsername;
+    var dbPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value ?? "";
+    var dbUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+    var dbInitials = !string.IsNullOrWhiteSpace(dbDisplayName)
+        ? (dbDisplayName.Length >= 2 ? dbDisplayName.Substring(0, 2).ToUpper() : dbDisplayName.ToUpper())
+        : "DB";
+}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -99,14 +110,8 @@
                     </div>
                 </div>
 
-                <!-- Header Actions: Role Switcher Shortcut, Notifications, Profile Dropdown -->
+                <!-- Header Actions: Notifications, Profile Dropdown -->
                 <div class="d-flex align-items-center gap-2 gap-md-3">
-                    <!-- Temporary frontend preview shortcut -->
-                    <a class="btn btn-sm btn-outline-success d-none d-md-inline-flex align-items-center gap-1" href="~/Home/Index" title="Temporary frontend preview of Admin layout">
-                        <i class="cil-drop"></i>
-                        <span>Preview Admin Layout</span>
-                    </a>
-
                     <!-- Notification Bell -->
                     <div class="dropdown">
                         <button class="btn btn-link text-secondary p-1 position-relative text-decoration-none" type="button" data-coreui-toggle="dropdown" aria-expanded="false" title="Notifications">
@@ -114,7 +119,7 @@
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" style="min-width: 270px;">
                             <li class="dropdown-header fw-bold text-uppercase fs-7 text-muted border-bottom pb-2">
-                                Route Notifications (Preview)
+                                Route Notifications
                             </li>
                             <li class="p-3 text-center text-muted small">
                                 <i class="cil-bell text-secondary fs-4 d-block mb-1"></i>
@@ -123,18 +128,26 @@
                         </ul>
                     </div>
 
-                    <!-- Current Delivery Boy Profile Dropdown -->
+                    <!-- Authenticated Delivery Boy Profile Dropdown -->
                     <div class="dropdown">
                         <a class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle" href="#" role="button" data-coreui-toggle="dropdown" aria-expanded="false">
-                            <span class="header-user-avatar border shadow-sm text-primary" style="background-color: #dbeafe;">RK</span>
-                            <span class="d-none d-lg-inline-block fw-semibold text-dark small">Ramesh Kumar</span>
+                            <span class="header-user-avatar border shadow-sm text-primary" style="background-color: #dbeafe;">@dbInitials</span>
+                            <span class="d-none d-lg-inline-block fw-semibold text-dark small">@dbDisplayName</span>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2">
-                            <li class="dropdown-header small text-muted">Delivery Partner #DB-004</li>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" style="min-width: 230px;">
+                            <li class="dropdown-header small text-muted">
+                                <div class="fw-bold text-dark">@dbDisplayName</div>
+                                <div>Partner @(!string.IsNullOrEmpty(dbUserId) ? $"#DB-{dbUserId.PadLeft(3, '0')}" : "") &bull; Delivery Boy</div>
+                                @if (!string.IsNullOrEmpty(dbPhone))
+                                {
+                                    <div class="text-secondary small mt-1"><i class="cil-phone me-1"></i>@dbPhone</div>
+                                }
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
                             <li><a class="dropdown-item small" href="#profile"><i class="cil-user me-2"></i> Profile</a></li>
                             <li><a class="dropdown-item small" href="#settings"><i class="cil-settings me-2"></i> Settings</a></li>
                             <li><a class="dropdown-item small" href="#help-support"><i class="cil-info me-2"></i> Help &amp; Support</a></li>
-                            <li><hr class="dropdown-divider"></li>
+                            <li><hr class="dropdown-divider my-1"></li>
                             <li>
                                 <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
                                     @Html.AntiForgeryToken()
@@ -163,14 +176,15 @@
             </div>
             <div class="d-flex align-items-center gap-3">
                 <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
-                    <i class="cil-wifi-signal-4 me-1"></i> Online &bull; Route 4
+                    <i class="cil-wifi-signal-4 me-1"></i> Online &bull; Field Operations
                 </span>
                 <span>Version 1.0</span>
             </div>
         </footer>
     </div>
 
-    <!-- CoreUI Bundle JS (Includes Popper & Bootstrap 5) -->
+    <!-- Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/coreui/js/coreui.bundle.min.js"></script>
     <script src="~/js/dms-main.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)

@@ -366,3 +366,47 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     display: none;
   }
 }
+
+/* Password Visibility Toggle Button */
+.btn-password-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--dms-transition);
+  cursor: pointer;
+}
+
+.btn-password-toggle:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+.btn-password-toggle:focus {
+  box-shadow: none;
+  border-color: #cbd5e1;
+}
+
+/* ASP.NET Core Form Validation Styling */
+.input-validation-error {
+  border-color: #ef4444 !important;
+  background-color: #fffaf0;
+}
+
+.input-validation-error:focus {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+}
+
+.field-validation-error {
+  color: #dc2626;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  display: block;
+  margin-top: 0.25rem;
+}
+
+.validation-summary-errors ul {
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 0;
+}

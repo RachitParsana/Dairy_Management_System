@@ -30,14 +30,20 @@
                         <i class="cil-bike fs-2 text-white" style="color: #60a5fa !important;"></i>
                     </div>
                     <h2 class="fw-bold text-dark mb-1">DairyMS Delivery</h2>
-                    <p class="text-muted small">Field Delivery Operations Portal</p>
+                    <p class="text-muted small mb-0">Field Delivery Operations Portal</p>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle mt-1 small">
+                        ડેરી મેનેજમેન્ટ સિસ્ટમ &bull; ડિલિવરી પાર્ટનર લૉગિન
+                    </span>
                 </div>
 
                 <!-- Login Card -->
                 <div class="card border-0 shadow-sm rounded-3">
                     <div class="card-body p-4">
                         <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
-                            <span class="fw-semibold text-dark">Partner Sign In</span>
+                            <div>
+                                <span class="fw-semibold text-dark d-block">Partner Sign In</span>
+                                <small class="text-muted">પાર્ટનર સાઇન ઇન</small>
+                            </div>
                             <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Role: Delivery Boy</span>
                         </div>
 
@@ -72,28 +78,58 @@
                         }
                         else
                         {
-                            <form asp-controller="Auth" asp-action="DeliveryBoyLogin" asp-route-returnurl="@ViewData["ReturnUrl"]" method="post" novalidate>
+                            <form asp-controller="Auth" asp-action="DeliveryBoyLogin" asp-route-returnurl="@ViewData["ReturnUrl"]" method="post" id="deliveryBoyLoginForm" novalidate>
                                 @Html.AntiForgeryToken()
 
-                                <!-- Validation Summary / Error Alert -->
-                                <div asp-validation-summary="ModelOnly" class="alert alert-danger p-2 small mb-3 border-0 shadow-sm" role="alert"></div>
+                                <!-- Server Validation Summary / Authentication Error Alert -->
+                                @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+                                {
+                                    <div class="alert alert-danger p-3 small mb-3 border-0 shadow-sm d-flex align-items-start gap-2" role="alert">
+                                        <i class="cil-warning fs-5 text-danger flex-shrink-0 mt-1"></i>
+                                        <div>
+                                            <strong class="d-block mb-1">Authentication Failed / લૉગિન નિષ્ફળ:</strong>
+                                            @foreach (var error in ViewData.ModelState[string.Empty]!.Errors)
+                                            {
+                                                <span>@error.ErrorMessage</span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                                else if (!ViewData.ModelState.IsValid)
+                                {
+                                    <div asp-validation-summary="ModelOnly" class="alert alert-danger p-2 small mb-3 border-0 shadow-sm" role="alert"></div>
+                                }
 
                                 <!-- Mobile Number Field -->
                                 <div class="mb-3">
-                                    <label asp-for="Phone" class="form-dms-label">Registered Mobile Number</label>
+                                    <div class="d-flex justify-content-between align-items-baseline mb-1">
+                                        <label asp-for="Phone" class="form-dms-label mb-0">Registered Mobile Number</label>
+                                        <small class="text-muted">નોંધાયેલ મોબાઇલ નંબર</small>
+                                    </div>
                                     <div class="input-group">
                                         <span class="input-group-text bg-white border-end-0 text-muted"><i class="cil-phone"></i></span>
-                                        <input asp-for="Phone" class="form-control form-control-dms border-start-0 fs-6" placeholder="e.g. 9876543210" autocomplete="tel" autofocus />
+                                        <input asp-for="Phone" class="form-control form-control-dms border-start-0 fs-6" placeholder="e.g. 9876543210" autocomplete="tel" maxlength="15" autofocus />
                                     </div>
                                     <span asp-validation-for="Phone" class="text-danger small mt-1 d-block"></span>
                                 </div>
 
-                                <!-- Password Field -->
+                                <!-- Password Field with Visibility Toggle -->
                                 <div class="mb-3">
-                                    <label asp-for="Password" class="form-dms-label">Password</label>
+                                    <div class="d-flex justify-content-between align-items-baseline mb-1">
+                                        <label asp-for="Password" class="form-dms-label mb-0">Password</label>
+                                        <small class="text-muted">પાસવર્ડ</small>
+                                    </div>
                                     <div class="input-group">
                                         <span class="input-group-text bg-white border-end-0 text-muted"><i class="cil-lock-locked"></i></span>
-                                        <input asp-for="Password" class="form-control form-control-dms border-start-0 fs-6" placeholder="••••••••" autocomplete="current-password" />
+                                        <input asp-for="Password" id="dbPasswordInput" class="form-control form-control-dms border-start-0 border-end-0 fs-6" placeholder="••••••••" autocomplete="current-password" />
+                                        <button type="button" class="btn btn-outline-secondary border-start-0 bg-white text-muted btn-password-toggle px-3" data-target="dbPasswordInput" title="Toggle password visibility" aria-label="Toggle password visibility">
+                                            <span class="icon-show">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                            </span>
+                                            <span class="icon-hide d-none">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                                            </span>
+                                        </button>
                                     </div>
                                     <span asp-validation-for="Password" class="text-danger small mt-1 d-block"></span>
                                 </div>
@@ -101,14 +137,21 @@
                                 <!-- Remember Me Checkbox -->
                                 <div class="mb-3 form-check">
                                     <input asp-for="RememberMe" class="form-check-input" />
-                                    <label asp-for="RememberMe" class="form-check-label small text-muted">Keep me signed in on this device</label>
+                                    <label asp-for="RememberMe" class="form-check-label small text-muted">
+                                        Keep me signed in on this device <span class="d-none d-sm-inline">(મને સાઇન ઇન રાખો)</span>
+                                    </label>
                                 </div>
 
-                                <!-- Submit Touch Button -->
+                                <!-- Submit Touch Button with Loading State -->
                                 <div class="d-grid mt-4">
-                                    <button type="submit" class="btn btn-db-primary py-2 fw-semibold btn-touch-lg">
-                                        <i class="cil-check fs-5"></i>
-                                        <span>Sign In to Field Portal</span>
+                                    <button type="submit" id="dbSubmitBtn" class="btn btn-db-primary py-2 fw-semibold btn-touch-lg">
+                                        <span class="btn-text">
+                                            <i class="cil-check fs-5 me-1"></i> Sign In to Field Portal &bull; સાઇન ઇન
+                                        </span>
+                                        <span class="btn-spinner d-none">
+                                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                            Signing In...
+                                        </span>
                                     </button>
                                 </div>
                             </form>
@@ -117,7 +160,7 @@
 
                     <!-- Card Footer: Switch to Admin Login -->
                     <div class="card-footer bg-light border-top text-center py-3">
-                        <span class="text-muted small">System Administrator?</span>
+                        <span class="text-muted small">System Administrator? / સિસ્ટમ એડમિન છો?</span>
                         <a asp-controller="Auth" asp-action="AdminLogin" class="small fw-semibold text-success ms-1 text-decoration-none">
                             Admin Login &rarr;
                         </a>
@@ -134,6 +177,10 @@
     </div>
 
     <!-- Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
     <script src="~/lib/coreui/js/coreui.bundle.min.js"></script>
+    <script src="~/js/dms-main.js" asp-append-version="true"></script>
 </body>
 </html>

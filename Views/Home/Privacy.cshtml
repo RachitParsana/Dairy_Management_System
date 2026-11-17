@@ -1,21 +1,15 @@
-﻿@{
+﻿@using System.Security.Claims
+@{
     Layout = "_LayoutDeliveryBoy";
     ViewData["Title"] = "Delivery Partner Portal";
-    ViewData["ActiveMenu"] = "DailyMilkEntry";
-}
+    ViewData["ActiveMenu"] = "Dashboard";
 
-<!-- Demonstration Notice Banner (Correction 1) -->
-<div class="alert alert-warning border-warning shadow-sm d-flex align-items-center gap-3 mb-4" role="alert">
-    <i class="cil-info fs-4 text-warning flex-shrink-0"></i>
-    <div class="flex-grow-1">
-        <strong>DEMO DATA — NOT REAL:</strong> This view is a mobile-first frontend foundation preview for delivery field operations. All statistics, route customer stops, and entry cards are visual demonstration placeholders and do not represent live operational records.
-    </div>
-    <div class="flex-shrink-0 d-none d-md-block">
-        <a href="~/Home/Index" class="btn btn-sm btn-outline-dark d-inline-flex align-items-center gap-1">
-            <i class="cil-drop"></i> Preview Admin Portal
-        </a>
-    </div>
-</div>
+    var dbUsername = User.Identity?.Name ?? "deliveryboy";
+    var dbFullName = User.FindFirst(ClaimTypes.GivenName)?.Value;
+    var dbDisplayName = !string.IsNullOrWhiteSpace(dbFullName) ? dbFullName : dbUsername;
+    var dbPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value ?? "";
+    var dbUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0";
+}
 
 <!-- Delivery Boy Route Header Bar -->
 <div class="card border-0 bg-white shadow-sm mb-4">
@@ -26,22 +20,38 @@
             </div>
             <div>
                 <div class="d-flex align-items-center gap-2">
-                    <h5 class="mb-0 fw-bold text-dark">Route 4 &bull; North Sector (Assigned Route)</h5>
+                    <h5 class="mb-0 fw-bold text-dark">Partner: @dbDisplayName</h5>
                     <span class="badge bg-primary text-white">Morning Shift</span>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle d-none d-sm-inline">
+                        ID: #DB-@dbUserId.PadLeft(3, '0')
+                    </span>
                 </div>
-                <div class="text-muted small">Partner: Ramesh Kumar &bull; Assigned Customers Only</div>
+                <div class="text-muted small">
+                    Registered Mobile: @(string.IsNullOrEmpty(dbPhone) ? "N/A" : dbPhone) &bull; Assigned Routes Only
+                </div>
             </div>
         </div>
 
         <div class="d-flex align-items-center gap-2">
             <span class="badge bg-light text-secondary border px-3 py-2 font-tabular">
-                Nov 16, 2026
+                <i class="cil-calendar me-1"></i> @DateTime.Now.ToString("MMM dd, yyyy")
+            </span>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">
+                <i class="cil-check-circle me-1"></i> Active Session
             </span>
         </div>
     </div>
 </div>
 
-<!-- Operational Metric Summary Cards (Neutral Placeholders per Correction 1 & 3 - No Payment Collection) -->
+<!-- Notice Banner: Mobile Field Operational Status -->
+<div class="alert alert-info border-info-subtle shadow-sm d-flex align-items-center gap-3 mb-4" role="alert">
+    <i class="cil-info fs-4 text-primary flex-shrink-0"></i>
+    <div class="flex-grow-1">
+        <strong>OPERATIONAL STATUS:</strong> Authenticated delivery partner session active. Assigned route customers and delivery logs will automatically synchronize once routes are mapped by the administrator in Phase 3.
+    </div>
+</div>
+
+<!-- Operational Metric Summary Cards (Neutral Placeholders per Specification) -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
         <div class="card-stat p-3 h-100">
@@ -75,7 +85,7 @@
 
 <!-- Mobile-First Delivery Entry & Run-Sheet Area -->
 <div class="row g-4 mb-4">
-    <!-- Touch-Optimized Daily Milk Entry Form (Correction 3) -->
+    <!-- Touch-Optimized Daily Milk Entry Form -->
     <div class="col-lg-5 col-xl-4">
         <div class="card-dms shadow-sm">
             <div class="card-header bg-white">
@@ -83,7 +93,7 @@
                     <i class="cil-drop text-primary"></i>
                     <span>Daily Milk Entry</span>
                 </div>
-                <span class="badge bg-secondary-subtle text-secondary small">Route 4 Assigned</span>
+                <span class="badge bg-secondary-subtle text-secondary small">Demo Interactive Entry</span>
             </div>
             <div class="card-body">
                 <form id="milkEntryForm" onsubmit="event.preventDefault();">
@@ -103,10 +113,10 @@
                         </div>
                     </div>
 
-                    <!-- Assigned Customers Only (Correction 3) -->
+                    <!-- Assigned Customers Only -->
                     <div class="mb-3">
                         <label class="form-dms-label" for="assignedCustomerSelect">
-                            Assigned Customer <span class="text-muted fw-normal">(Route 4 Only)</span>
+                            Assigned Customer <span class="text-muted fw-normal">(Route 4 Assigned)</span>
                         </label>
                         <select class="form-select form-select-dms" id="assignedCustomerSelect" onchange="toggleVacationState(this.value);">
                             <option value="active-104" selected>#104 - Sunil Sharma (Standard 2.0 L)</option>
@@ -127,7 +137,7 @@
                         </div>
                     </div>
 
-                    <!-- Category-Specific Quantity Entry (Correction 3) -->
+                    <!-- Category-Specific Quantity Entry -->
                     <div class="mb-3">
                         <label class="form-dms-label" for="entryCategorySelect">Product Category</label>
                         <select class="form-select form-select-dms" id="entryCategorySelect">
@@ -153,7 +163,7 @@
                         </div>
                     </div>
 
-                    <!-- Strictly Approved Daily Delivery Statuses (Correction 2 & 3: Completed, Pending, Not Delivered) -->
+                    <!-- Strictly Approved Daily Delivery Statuses (Completed, Pending, Not Delivered) -->
                     <div class="mb-3">
                         <label class="form-dms-label">Daily Delivery Status</label>
                         <div class="d-flex gap-2" id="deliveryStatusGroup">
@@ -196,11 +206,11 @@
             <div class="card-header bg-white">
                 <div class="d-flex align-items-center gap-2">
                     <i class="cil-task text-primary"></i>
-                    <span>Route 4 Assigned Run Sheet</span>
+                    <span>Route Assigned Run Sheet</span>
                     <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle small ms-2">DEMO PREVIEW</span>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-light text-secondary border">Nov 16, 2026</span>
+                    <span class="badge bg-light text-secondary border">@DateTime.Now.ToString("MMM dd, yyyy")</span>
                 </div>
             </div>
             <div class="table-responsive">
@@ -232,7 +242,7 @@
                                 </button>
                             </td>
                         </tr>
-                        <!-- Stop 2: Approved Vacation on file -> Status is Not Delivered, entry locked (Correction 2 & 3) -->
+                        <!-- Stop 2: Approved Vacation on file -> Status is Not Delivered, entry locked -->
                         <tr class="table-light">
                             <td class="fw-bold text-muted">02</td>
                             <td>
@@ -305,8 +315,8 @@
                 </table>
             </div>
             <div class="card-footer bg-white border-top py-2 px-3 d-flex justify-content-between align-items-center">
-                <span class="text-muted small">Demonstration Run Sheet &bull; Assigned Route 4 Customers</span>
-                <span class="text-muted small">Delivery statuses strictly: Completed &bull; Pending &bull; Not Delivered</span>
+                <span class="text-muted small">Demonstration Run Sheet &bull; Assigned Customers</span>
+                <span class="text-muted small">Statuses: Completed &bull; Pending &bull; Not Delivered</span>
             </div>
         </div>
     </div>
@@ -314,7 +324,6 @@
 
 @section Scripts {
 <script>
-    // Correction 3: Demonstrate disabling entry fields during approved vacation dates
     function toggleVacationState(val) {
         const isVacation = val.startsWith('vacation');
         const alertBox = document.getElementById('vacationAlertBox');
