@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Dairy_Management_System.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Dairy_Management_System.Controllers
@@ -13,16 +14,25 @@ namespace Dairy_Management_System.Controllers
             _logger = logger;
         }
 
+        /// <summary>
+        /// Admin Dashboard endpoint. Strictly protected for staff accounts with Admin role.
+        /// </summary>
+        [Authorize(Roles = "Admin")]
         public IActionResult Index()
         {
             return View();
         }
 
+        /// <summary>
+        /// Delivery Boy Portal endpoint. Strictly protected for staff accounts with DeliveryBoy role.
+        /// </summary>
+        [Authorize(Roles = "DeliveryBoy")]
         public IActionResult Privacy()
         {
             return View();
         }
 
+        [AllowAnonymous]
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

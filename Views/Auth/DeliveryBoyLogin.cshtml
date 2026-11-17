@@ -1,0 +1,139 @@
+@model Dairy_Management_System.Models.Auth.DeliveryBoyLoginViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Delivery Partner Login - Dairy Management System";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>@ViewData["Title"]</title>
+    <!-- Inter Font -->
+    <link rel="stylesheet" href="~/lib/inter/css/inter.css" />
+    <!-- CoreUI CSS (Bootstrap 5 compatible) -->
+    <link rel="stylesheet" href="~/lib/coreui/css/coreui.min.css" />
+    <!-- CoreUI Icons Free -->
+    <link rel="stylesheet" href="~/lib/coreui-icons/css/free.min.css" />
+    <!-- DMS Core & Delivery Boy Theme -->
+    <link rel="stylesheet" href="~/css/dms-core.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/dms-deliveryboy.css" asp-append-version="true" />
+</head>
+<body class="bg-light d-flex align-items-center min-vh-100 py-3">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-sm-10 col-md-8 col-lg-5 col-xl-4">
+                <!-- Branding Header -->
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-circle shadow-sm mb-3" style="background-color: #1e3a8a; width: 64px; height: 64px;">
+                        <i class="cil-bike fs-2 text-white" style="color: #60a5fa !important;"></i>
+                    </div>
+                    <h2 class="fw-bold text-dark mb-1">DairyMS Delivery</h2>
+                    <p class="text-muted small">Field Delivery Operations Portal</p>
+                </div>
+
+                <!-- Login Card -->
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                            <span class="fw-semibold text-dark">Partner Sign In</span>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Role: Delivery Boy</span>
+                        </div>
+
+                        @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Admin"))
+                        {
+                            <!-- Role Switch Confirmation Prompt -->
+                            <div class="alert alert-warning border-0 shadow-sm p-3 mb-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="cil-warning fs-4 text-warning me-2"></i>
+                                    <span class="fw-bold text-dark">Active Administrator Session</span>
+                                </div>
+                                <p class="small text-muted mb-0">
+                                    You are currently signed in as <strong>@(User.Identity.Name ?? "Administrator")</strong>.
+                                    To sign in to the <strong>Field Delivery Portal</strong>, you must explicitly switch roles and terminate your administrator session.
+                                </p>
+                            </div>
+
+                            <form asp-controller="Auth" asp-action="SwitchRole" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="targetRole" value="DeliveryBoy" />
+                                <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+
+                                <div class="d-grid gap-2 mt-4">
+                                    <button type="submit" class="btn btn-db-primary py-2 fw-semibold btn-touch-lg">
+                                        <i class="cil-sync me-1"></i> Confirm &amp; Switch to Delivery Partner Login
+                                    </button>
+                                    <a href="~/" class="btn btn-outline-secondary py-2 text-decoration-none">
+                                        <i class="cil-arrow-left me-1"></i> Return to Admin Dashboard
+                                    </a>
+                                </div>
+                            </form>
+                        }
+                        else
+                        {
+                            <form asp-controller="Auth" asp-action="DeliveryBoyLogin" asp-route-returnurl="@ViewData["ReturnUrl"]" method="post" novalidate>
+                                @Html.AntiForgeryToken()
+
+                                <!-- Validation Summary / Error Alert -->
+                                <div asp-validation-summary="ModelOnly" class="alert alert-danger p-2 small mb-3 border-0 shadow-sm" role="alert"></div>
+
+                                <!-- Mobile Number Field -->
+                                <div class="mb-3">
+                                    <label asp-for="Phone" class="form-dms-label">Registered Mobile Number</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="cil-phone"></i></span>
+                                        <input asp-for="Phone" class="form-control form-control-dms border-start-0 fs-6" placeholder="e.g. 9876543210" autocomplete="tel" autofocus />
+                                    </div>
+                                    <span asp-validation-for="Phone" class="text-danger small mt-1 d-block"></span>
+                                </div>
+
+                                <!-- Password Field -->
+                                <div class="mb-3">
+                                    <label asp-for="Password" class="form-dms-label">Password</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="cil-lock-locked"></i></span>
+                                        <input asp-for="Password" class="form-control form-control-dms border-start-0 fs-6" placeholder="••••••••" autocomplete="current-password" />
+                                    </div>
+                                    <span asp-validation-for="Password" class="text-danger small mt-1 d-block"></span>
+                                </div>
+
+                                <!-- Remember Me Checkbox -->
+                                <div class="mb-3 form-check">
+                                    <input asp-for="RememberMe" class="form-check-input" />
+                                    <label asp-for="RememberMe" class="form-check-label small text-muted">Keep me signed in on this device</label>
+                                </div>
+
+                                <!-- Submit Touch Button -->
+                                <div class="d-grid mt-4">
+                                    <button type="submit" class="btn btn-db-primary py-2 fw-semibold btn-touch-lg">
+                                        <i class="cil-check fs-5"></i>
+                                        <span>Sign In to Field Portal</span>
+                                    </button>
+                                </div>
+                            </form>
+                        }
+                    </div>
+
+                    <!-- Card Footer: Switch to Admin Login -->
+                    <div class="card-footer bg-light border-top text-center py-3">
+                        <span class="text-muted small">System Administrator?</span>
+                        <a asp-controller="Auth" asp-action="AdminLogin" class="small fw-semibold text-success ms-1 text-decoration-none">
+                            Admin Login &rarr;
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Security Notice -->
+                <div class="text-center mt-3 text-muted small">
+                    <i class="cil-shield-alt me-1 text-primary"></i>
+                    Protected Staff Authentication
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="~/lib/coreui/js/coreui.bundle.min.js"></script>
+</body>
+</html>

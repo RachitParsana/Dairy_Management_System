@@ -1,0 +1,83 @@
+@{
+    Layout = null;
+    ViewData["Title"] = "Access Denied - Dairy Management System";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <!-- Inter Font -->
+    <link rel="stylesheet" href="~/lib/inter/css/inter.css" />
+    <!-- CoreUI CSS (Bootstrap 5 compatible) -->
+    <link rel="stylesheet" href="~/lib/coreui/css/coreui.min.css" />
+    <!-- CoreUI Icons Free -->
+    <link rel="stylesheet" href="~/lib/coreui-icons/css/free.min.css" />
+    <!-- DMS Core Theme -->
+    <link rel="stylesheet" href="~/css/dms-core.css" asp-append-version="true" />
+</head>
+<body class="bg-light d-flex align-items-center min-vh-100 py-4">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6 col-xl-5 text-center">
+                <!-- Icon -->
+                <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-circle shadow-sm mb-3 bg-danger-subtle text-danger" style="width: 72px; height: 72px;">
+                    <i class="cil-shield-alt fs-1"></i>
+                </div>
+
+                <h1 class="fw-bold text-dark mb-2">403 - Access Denied</h1>
+                <p class="text-muted mb-4">
+                    Your authenticated staff account does not possess the required role permissions to access this resource.
+                </p>
+
+                <!-- Information Card -->
+                <div class="card border-0 shadow-sm rounded-3 text-start mb-4">
+                    <div class="card-body p-4">
+                        <h6 class="fw-semibold text-dark mb-2">Role-Based Access Enforcement:</h6>
+                        <ul class="text-muted small mb-0 ps-3">
+                            <li class="mb-1"><strong>Admin Console:</strong> Accessible strictly by accounts with the <code>Admin</code> role.</li>
+                            <li class="mb-1"><strong>Field Delivery Portal:</strong> Accessible strictly by accounts with the <code>DeliveryBoy</code> role.</li>
+                            <li>Cross-role execution is blocked to safeguard data integrity and operational boundaries.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Navigation Actions -->
+                <div class="d-flex flex-wrap justify-content-center gap-3">
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a href="~/" class="btn btn-outline-success px-4 py-2">
+                            <i class="cil-speedometer me-1"></i> Return to Admin Dashboard
+                        </a>
+                    }
+                    else if (User.IsInRole("DeliveryBoy"))
+                    {
+                        <a href="~/Home/Privacy" class="btn btn-outline-primary px-4 py-2">
+                            <i class="cil-bike me-1"></i> Return to Delivery Portal
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Auth" asp-action="AdminLogin" class="btn btn-primary px-4 py-2">
+                            <i class="cil-account-logout me-1"></i> Go to Sign In
+                        </a>
+                    }
+
+                    <!-- Secure POST Logout to switch accounts -->
+                    <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger px-4 py-2">
+                            <i class="cil-exit-to-app me-1"></i> Sign Out / Switch Role
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="~/lib/coreui/js/coreui.bundle.min.js"></script>
+</body>
+</html>
