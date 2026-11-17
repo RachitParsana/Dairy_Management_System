@@ -1,3 +1,4 @@
+using Dairy_Management_System.Data;
 using Dairy_Management_System.Models.Auth;
 using Dairy_Management_System.Repositories;
 using Dairy_Management_System.Services;
@@ -9,7 +10,7 @@ namespace Dairy_Management_System
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -82,17 +83,11 @@ namespace Dairy_Management_System
             // Register Cryptographic Password Hasher
             builder.Services.AddScoped<IPasswordHasher<UserAuthRecord>, PasswordHasher<UserAuthRecord>>();
 
+            // Register SQL Server ADO.NET Authentication Repository
+            builder.Services.AddScoped<IUserAuthRepository, UserAuthRepository>();
+
             // Register Authentication Service
-            // Note: IUserAuthRepository is not registered here because its concrete ADO.NET implementation
-            // will be provided by Kevin in the upcoming database integration phase.
-            // UserAuthService gracefully identifies when the repository is pending registration.
-            builder.Services.AddScoped<IUserAuthService>(sp =>
-            {
-                var repo = sp.GetService<IUserAuthRepository>();
-                var hasher = sp.GetRequiredService<IPasswordHasher<UserAuthRecord>>();
-                var logger = sp.GetRequiredService<ILogger<UserAuthService>>();
-                return new UserAuthService(repo, hasher, logger);
-            });
+            builder.Services.AddScoped<IUserAuthService, UserAuthService>();
 
             var app = builder.Build();
 
@@ -119,7 +114,10 @@ namespace Dairy_Management_System
                 pattern: "{controller=Home}/{action=Index}/{id?}")
                 .WithStaticAssets();
 
-            app.Run();
+            // Run initial database initialization and Admin provisioning
+            await DbInitializer.InitializeAsync(app.Services);
+
+            await app.RunAsync();
         }
     }
 
