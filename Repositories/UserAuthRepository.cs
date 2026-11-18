@@ -1,4 +1,5 @@
 using System.Data;
+using Dairy_Management_System.Data;
 using Dairy_Management_System.Models.Auth;
 using Microsoft.Data.SqlClient;
 
@@ -11,30 +12,26 @@ namespace Dairy_Management_System.Repositories
     /// </summary>
     public class UserAuthRepository : IUserAuthRepository
     {
-        private readonly string _connectionString;
+        private readonly ISqlConnectionFactory _connectionFactory;
         private readonly ILogger<UserAuthRepository> _logger;
 
-        public UserAuthRepository(IConfiguration configuration, ILogger<UserAuthRepository> logger)
+        public UserAuthRepository(ISqlConnectionFactory connectionFactory, ILogger<UserAuthRepository> logger)
         {
-            ArgumentNullException.ThrowIfNull(configuration);
+            _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
 
-            _connectionString = configuration.GetConnectionString("DairyManagementDb")
-                ?? throw new InvalidOperationException("Connection string 'DairyManagementDb' was not found in configuration.");
+        public UserAuthRepository(IConfiguration configuration, ILogger<UserAuthRepository> logger)
+            : this(new SqlConnectionFactory(configuration), logger)
+        {
         }
 
         /// <summary>
         /// Secondary constructor for scenarios where connection string is directly provided (e.g. testing).
         /// </summary>
         public UserAuthRepository(string connectionString, ILogger<UserAuthRepository> logger)
+            : this(new SqlConnectionFactory(connectionString), logger)
         {
-            if (string.IsNullOrWhiteSpace(connectionString))
-            {
-                throw new ArgumentException("Connection string cannot be null or whitespace.", nameof(connectionString));
-            }
-
-            _connectionString = connectionString;
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public async Task<UserAuthRecord?> GetActiveAdminByCredentialsAsync(string username, string phone, CancellationToken cancellationToken = default)
@@ -52,8 +49,7 @@ namespace Dairy_Management_System.Repositories
                   AND [Role] = 'Admin'
                   AND [IsActive] = 1;";
 
-            await using var connection = new SqlConnection(_connectionString);
-            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            await using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             await using var command = new SqlCommand(sql, connection);
             command.CommandType = CommandType.Text;
@@ -88,8 +84,7 @@ namespace Dairy_Management_System.Repositories
                   AND [Role] = 'DeliveryBoy'
                   AND [IsActive] = 1;";
 
-            await using var connection = new SqlConnection(_connectionString);
-            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            await using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             await using var command = new SqlCommand(sql, connection);
             command.CommandType = CommandType.Text;
@@ -115,8 +110,7 @@ namespace Dairy_Management_System.Repositories
                     [UpdatedAt] = SYSUTCDATETIME()
                 WHERE [UserId] = @UserId;";
 
-            await using var connection = new SqlConnection(_connectionString);
-            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            await using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             await using var command = new SqlCommand(sql, connection);
             command.CommandType = CommandType.Text;

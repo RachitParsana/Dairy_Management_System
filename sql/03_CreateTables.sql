@@ -105,14 +105,18 @@ BEGIN
         [CustomerId] INT NOT NULL IDENTITY(1,1) CONSTRAINT [PK_Customers] PRIMARY KEY CLUSTERED,
         [CustomerCode] VARCHAR(20) NOT NULL CONSTRAINT [UQ_Customers_CustomerCode] UNIQUE,
         [FullName] NVARCHAR(100) NOT NULL,
+        [FullNameGujarati] NVARCHAR(100) NULL,
         [Phone] VARCHAR(15) NOT NULL,
         [AlternatePhone] VARCHAR(15) NULL,
         [Address] NVARCHAR(250) NOT NULL,
+        [Area] NVARCHAR(100) NULL,
         [Landmark] NVARCHAR(100) NULL,
         [RouteId] INT NOT NULL CONSTRAINT [FK_Customers_RouteId] REFERENCES [dbo].[Routes]([RouteId]),
         [CurrentDeliveryBoyId] INT NULL CONSTRAINT [FK_Customers_CurrentDeliveryBoyId] REFERENCES [dbo].[DeliveryBoys]([DeliveryBoyId]),
         [DeliverySequence] INT NOT NULL CONSTRAINT [DF_Customers_DeliverySequence] DEFAULT (0),
         [PreferredShift] NVARCHAR(20) NOT NULL CONSTRAINT [DF_Customers_PreferredShift] DEFAULT ('Both') CONSTRAINT [CK_Customers_PreferredShift] CHECK ([PreferredShift] IN ('Morning', 'Evening', 'Both')),
+        [Notes] NVARCHAR(500) NULL,
+        [DeliveryStartDate] DATE NULL,
         [Status] NVARCHAR(20) NOT NULL CONSTRAINT [DF_Customers_Status] DEFAULT ('Active') CONSTRAINT [CK_Customers_Status] CHECK ([Status] IN ('Active', 'Suspended', 'Inactive')),
         [IsActive] BIT NOT NULL CONSTRAINT [DF_Customers_IsActive] DEFAULT (1),
         [CreatedAt] DATETIME2(7) NOT NULL CONSTRAINT [DF_Customers_CreatedAt] DEFAULT (SYSUTCDATETIME()),
@@ -183,6 +187,8 @@ BEGIN
         [Shift] NVARCHAR(20) NOT NULL CONSTRAINT [DF_CustomerSubscriptions_Shift] DEFAULT ('Both') CONSTRAINT [CK_CustomerSubscriptions_Shift] CHECK ([Shift] IN ('Morning', 'Evening', 'Both')),
         [PackagingQuantity] DECIMAL(18,3) NOT NULL CONSTRAINT [CK_CustomerSubscriptions_Quantity] CHECK ([PackagingQuantity] > 0),
         [DailyLiquidVolumeLitres] DECIMAL(18,3) NOT NULL CONSTRAINT [DF_CustomerSubscriptions_LiquidVolume] DEFAULT (0.000) CONSTRAINT [CK_CustomerSubscriptions_LiquidVolume] CHECK ([DailyLiquidVolumeLitres] >= 0),
+        [DeliverySchedule] NVARCHAR(20) NOT NULL CONSTRAINT [DF_CustomerSubscriptions_DeliverySchedule] DEFAULT ('Daily') CONSTRAINT [CK_CustomerSubscriptions_Schedule] CHECK ([DeliverySchedule] IN ('Daily', 'Weekdays', 'Weekends', 'CustomDays')),
+        [DeliveryDays] VARCHAR(20) NOT NULL CONSTRAINT [DF_CustomerSubscriptions_DeliveryDays] DEFAULT ('1,2,3,4,5,6,7'),
         [EffectiveFrom] DATE NOT NULL,
         [EffectiveTo] DATE NULL,
         [IsActive] BIT NOT NULL CONSTRAINT [DF_CustomerSubscriptions_IsActive] DEFAULT (1),
@@ -190,9 +196,140 @@ BEGIN
         [CreatedBy] INT NOT NULL CONSTRAINT [FK_CustomerSubscriptions_CreatedBy] REFERENCES [dbo].[Users]([UserId]),
         [UpdatedAt] DATETIME2(7) NULL,
         [UpdatedBy] INT NULL CONSTRAINT [FK_CustomerSubscriptions_UpdatedBy] REFERENCES [dbo].[Users]([UserId]),
-        CONSTRAINT [CK_CustomerSubscriptions_Dates] CHECK ([EffectiveTo] IS NULL OR [EffectiveTo] >= [EffectiveFrom])
+        CONSTRAINT [CK_CustomerSubscriptions_Dates] CHECK ([EffectiveTo] IS NULL OR [EffectiveTo] >= [EffectiveFrom]),
+        CONSTRAINT [CK_CustomerSubscriptions_Schedule_Consistency] CHECK (
+            ([DeliverySchedule] = 'Daily' AND [DeliveryDays] = '1,2,3,4,5,6,7') OR
+            ([DeliverySchedule] = 'Weekdays' AND [DeliveryDays] = '1,2,3,4,5') OR
+            ([DeliverySchedule] = 'Weekends' AND [DeliveryDays] = '6,7') OR
+            ([DeliverySchedule] = 'CustomDays' AND [DeliveryDays] NOT IN ('1,2,3,4,5,6,7', '1,2,3,4,5', '6,7')
+             AND LEN([DeliveryDays]) > 0
+             AND [DeliveryDays] NOT LIKE '%[^1-7,]%' AND [DeliveryDays] NOT LIKE ',%' AND [DeliveryDays] NOT LIKE '%,' AND [DeliveryDays] NOT LIKE '%,,%'
+             AND [DeliveryDays] NOT LIKE '%1%1%'
+             AND [DeliveryDays] NOT LIKE '%2%[1-2]%'
+             AND [DeliveryDays] NOT LIKE '%3%[1-3]%'
+             AND [DeliveryDays] NOT LIKE '%4%[1-4]%'
+             AND [DeliveryDays] NOT LIKE '%5%[1-5]%'
+             AND [DeliveryDays] NOT LIKE '%6%[1-6]%'
+             AND [DeliveryDays] NOT LIKE '%7%[1-7]%')
+        )
     );
 END
+GO
+
+-- 8.1 CustomerSubscriptionDeliveryDays (Normalized child table preventing duplicate weekdays)
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = N'CustomerSubscriptionDeliveryDays')
+BEGIN
+    PRINT 'Creating table CustomerSubscriptionDeliveryDays...';
+    CREATE TABLE [dbo].[CustomerSubscriptionDeliveryDays] (
+        [SubscriptionId] INT NOT NULL,
+        [DayOfWeek] TINYINT NOT NULL, -- 1=Monday ... 7=Sunday (ISO 8601)
+        CONSTRAINT [PK_CustomerSubscriptionDeliveryDays] PRIMARY KEY CLUSTERED ([SubscriptionId], [DayOfWeek]),
+        CONSTRAINT [FK_SubscriptionDeliveryDays_Subscription] FOREIGN KEY ([SubscriptionId])
+            REFERENCES [dbo].[CustomerSubscriptions]([SubscriptionId]) ON DELETE CASCADE,
+        CONSTRAINT [CK_SubscriptionDeliveryDays_Range] CHECK ([DayOfWeek] BETWEEN 1 AND 7)
+    );
+END
+GO
+
+-- 8.2 Integrity Triggers for Parent-Child Delivery Days Exact Set Equality
+CREATE OR ALTER TRIGGER [dbo].[trg_CustomerSubscriptionDeliveryDays_Validate]
+ON [dbo].[CustomerSubscriptionDeliveryDays]
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Allow coordinated multi-table schedule transitions under usp_CustomerSubscription_UpdateSchedule
+    IF CAST(SESSION_CONTEXT(N'SubscriptionScheduleTransition') AS INT) = 1 AND @@TRANCOUNT > 0
+    BEGIN
+        RETURN;
+    END
+
+    -- Verify exact set equality: normalized child rows must equal parent DeliveryDays
+    IF EXISTS (
+        SELECT 1
+        FROM (SELECT DISTINCT [SubscriptionId] FROM inserted) i
+        INNER JOIN [dbo].[CustomerSubscriptions] s ON i.[SubscriptionId] = s.[SubscriptionId]
+        CROSS APPLY (
+            SELECT STRING_AGG(CAST(c.[DayOfWeek] AS VARCHAR(2)), ',') WITHIN GROUP (ORDER BY c.[DayOfWeek] ASC) AS ChildDays
+            FROM [dbo].[CustomerSubscriptionDeliveryDays] c
+            WHERE c.[SubscriptionId] = i.[SubscriptionId]
+        ) ca
+        WHERE ISNULL(ca.ChildDays, '') != s.[DeliveryDays]
+    )
+    BEGIN
+        RAISERROR('Cannot insert or update CustomerSubscriptionDeliveryDays: Normalized child weekdays do not exactly match parent DeliveryDays schedule. Exact set equality is required.', 16, 1);
+        ROLLBACK TRANSACTION;
+        RETURN;
+    END
+END;
+GO
+
+CREATE OR ALTER TRIGGER [dbo].[trg_CustomerSubscriptionDeliveryDays_Delete]
+ON [dbo].[CustomerSubscriptionDeliveryDays]
+AFTER DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Allow coordinated multi-table schedule transitions under usp_CustomerSubscription_UpdateSchedule
+    IF CAST(SESSION_CONTEXT(N'SubscriptionScheduleTransition') AS INT) = 1 AND @@TRANCOUNT > 0
+    BEGIN
+        RETURN;
+    END
+
+    -- If parent subscription still exists (not a cascade delete of parent)
+    IF EXISTS (
+        SELECT 1
+        FROM (SELECT DISTINCT [SubscriptionId] FROM deleted) d
+        INNER JOIN [dbo].[CustomerSubscriptions] s ON d.[SubscriptionId] = s.[SubscriptionId]
+        CROSS APPLY (
+            SELECT STRING_AGG(CAST(c.[DayOfWeek] AS VARCHAR(2)), ',') WITHIN GROUP (ORDER BY c.[DayOfWeek] ASC) AS ChildDays
+            FROM [dbo].[CustomerSubscriptionDeliveryDays] c
+            WHERE c.[SubscriptionId] = d.[SubscriptionId]
+        ) ca
+        WHERE ISNULL(ca.ChildDays, '') != s.[DeliveryDays]
+    )
+    BEGIN
+        RAISERROR('Cannot delete from CustomerSubscriptionDeliveryDays: Remaining child weekdays do not exactly match parent DeliveryDays schedule. Exact set equality is required.', 16, 1);
+        ROLLBACK TRANSACTION;
+        RETURN;
+    END
+END;
+GO
+
+CREATE OR ALTER TRIGGER [dbo].[trg_CustomerSubscriptions_ValidateDeliveryDaysUpdate]
+ON [dbo].[CustomerSubscriptions]
+AFTER UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Allow coordinated multi-table schedule transitions under usp_CustomerSubscription_UpdateSchedule
+    IF CAST(SESSION_CONTEXT(N'SubscriptionScheduleTransition') AS INT) = 1 AND @@TRANCOUNT > 0
+    BEGIN
+        RETURN;
+    END
+
+    IF UPDATE([DeliverySchedule]) OR UPDATE([DeliveryDays])
+    BEGIN
+        IF EXISTS (
+            SELECT 1
+            FROM inserted i
+            CROSS APPLY (
+                SELECT STRING_AGG(CAST(d.[DayOfWeek] AS VARCHAR(2)), ',') WITHIN GROUP (ORDER BY d.[DayOfWeek] ASC) AS ChildDays
+                FROM [dbo].[CustomerSubscriptionDeliveryDays] d
+                WHERE d.[SubscriptionId] = i.[SubscriptionId]
+            ) ca
+            WHERE ISNULL(ca.ChildDays, '') != i.[DeliveryDays]
+        )
+        BEGIN
+            RAISERROR('Cannot update CustomerSubscriptions: Parent DeliveryDays does not exactly match normalized child rows in CustomerSubscriptionDeliveryDays. Exact set equality is required.', 16, 1);
+            ROLLBACK TRANSACTION;
+            RETURN;
+        END
+    END
+END;
 GO
 
 -- 9. CustomerCustomPricing (Customer-specific unit price overrides with effective date ranges)
@@ -235,7 +372,8 @@ BEGIN
         [CreatedBy] INT NOT NULL CONSTRAINT [FK_CustomerVacations_CreatedBy] REFERENCES [dbo].[Users]([UserId]),
         [UpdatedAt] DATETIME2(7) NULL,
         [UpdatedBy] INT NULL CONSTRAINT [FK_CustomerVacations_UpdatedBy] REFERENCES [dbo].[Users]([UserId]),
-        CONSTRAINT [CK_CustomerVacations_Dates] CHECK ([EndDate] >= [StartDate])
+        CONSTRAINT [CK_CustomerVacations_Dates] CHECK ([EndDate] >= [StartDate]),
+        CONSTRAINT [CK_CustomerVacations_ResumedDate] CHECK ([ResumedDate] IS NULL OR ([ResumedDate] >= [StartDate] AND [ResumedDate] <= [EndDate]))
     );
 END
 GO

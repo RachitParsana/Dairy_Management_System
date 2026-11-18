@@ -229,5 +229,75 @@ BEGIN
 END
 GO
 
+-- 8. Customer FullName Search Index
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customers_FullName' AND object_id = OBJECT_ID(N'[dbo].[Customers]'))
+BEGIN
+    PRINT 'Creating performance index IX_Customers_FullName...';
+    CREATE NONCLUSTERED INDEX [IX_Customers_FullName]
+    ON [dbo].[Customers]([FullName])
+    INCLUDE ([CustomerCode], [Phone], [Area], [Status], [IsActive]);
+END
+GO
+
+-- 9. Customer Phone Search Index
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customers_Phone' AND object_id = OBJECT_ID(N'[dbo].[Customers]'))
+BEGIN
+    PRINT 'Creating performance index IX_Customers_Phone...';
+    CREATE NONCLUSTERED INDEX [IX_Customers_Phone]
+    ON [dbo].[Customers]([Phone])
+    INCLUDE ([FullName], [Status], [IsActive]);
+END
+GO
+
+-- 10. Customer Area Filter Index
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customers_Area' AND object_id = OBJECT_ID(N'[dbo].[Customers]'))
+BEGIN
+    PRINT 'Creating performance index IX_Customers_Area...';
+    CREATE NONCLUSTERED INDEX [IX_Customers_Area]
+    ON [dbo].[Customers]([Area])
+    WHERE [Area] IS NOT NULL;
+END
+GO
+
+-- 11. Customer Status & IsActive Grid Filter Index
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customers_Status_IsActive' AND object_id = OBJECT_ID(N'[dbo].[Customers]'))
+BEGIN
+    PRINT 'Creating performance index IX_Customers_Status_IsActive...';
+    CREATE NONCLUSTERED INDEX [IX_Customers_Status_IsActive]
+    ON [dbo].[Customers]([Status], [IsActive])
+    INCLUDE ([CustomerId], [RouteId], [DeliverySequence], [CurrentDeliveryBoyId]);
+END
+GO
+
+-- 12. Customer CurrentDeliveryBoyId Route Index
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_Customers_CurrentDeliveryBoyId' AND object_id = OBJECT_ID(N'[dbo].[Customers]'))
+BEGIN
+    PRINT 'Creating performance index IX_Customers_CurrentDeliveryBoyId...';
+    CREATE NONCLUSTERED INDEX [IX_Customers_CurrentDeliveryBoyId]
+    ON [dbo].[Customers]([CurrentDeliveryBoyId], [IsActive])
+    INCLUDE ([CustomerId], [RouteId], [DeliverySequence]);
+END
+GO
+
+-- 13. CustomerSubscriptionDeliveryDays DayOfWeek Runsheet Index
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_SubscriptionDeliveryDays_DayOfWeek' AND object_id = OBJECT_ID(N'[dbo].[CustomerSubscriptionDeliveryDays]'))
+BEGIN
+    PRINT 'Creating performance index IX_SubscriptionDeliveryDays_DayOfWeek...';
+    CREATE NONCLUSTERED INDEX [IX_SubscriptionDeliveryDays_DayOfWeek]
+    ON [dbo].[CustomerSubscriptionDeliveryDays]([DayOfWeek])
+    INCLUDE ([SubscriptionId]);
+END
+GO
+
+-- 14. CustomerVacations Overlap Check Index
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_CustomerVacations_OverlapCheck' AND object_id = OBJECT_ID(N'[dbo].[CustomerVacations]'))
+BEGIN
+    PRINT 'Creating performance index IX_CustomerVacations_OverlapCheck...';
+    CREATE NONCLUSTERED INDEX [IX_CustomerVacations_OverlapCheck]
+    ON [dbo].[CustomerVacations]([CustomerId], [Status], [StartDate], [EndDate], [Shift])
+    INCLUDE ([ResumedDate]);
+END
+GO
+
 PRINT 'All indexes created or verified successfully.';
 GO

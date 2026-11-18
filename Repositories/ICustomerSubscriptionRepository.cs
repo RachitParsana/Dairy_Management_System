@@ -18,6 +18,8 @@ namespace Dairy_Management_System.Repositories
 
         Task AddSubscriptionAsync(CustomerSubscriptionModel subscription, int createdByUserId, CancellationToken cancellationToken = default);
 
+        Task UpdateSubscriptionScheduleAsync(int subscriptionId, string newSchedule, string? newDays, int modifiedByUserId, CancellationToken cancellationToken = default);
+
         Task EndSubscriptionAsync(int subscriptionId, DateOnly effectiveTo, int modifiedByUserId, CancellationToken cancellationToken = default);
 
         Task<IReadOnlyList<CustomerCustomPriceModel>> GetCustomPricesByCustomerIdAsync(int customerId, CancellationToken cancellationToken = default);

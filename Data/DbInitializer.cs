@@ -22,7 +22,10 @@ namespace Dairy_Management_System.Data
             var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(DbInitializer));
 
             var connectionString = configuration.GetConnectionString("DairyManagementDb");
-            if (string.IsNullOrWhiteSpace(connectionString))
+            var connectionFactory = scope.ServiceProvider.GetService<ISqlConnectionFactory>()
+                ?? (!string.IsNullOrWhiteSpace(connectionString) ? new SqlConnectionFactory(connectionString) : null);
+
+            if (connectionFactory == null)
             {
                 logger.LogWarning("Skipping initial Admin provisioning: 'DairyManagementDb' connection string is missing or empty.");
                 return;
@@ -30,7 +33,7 @@ namespace Dairy_Management_System.Data
 
             try
             {
-                await SeedInitialAdminAsync(connectionString, configuration, passwordHasher, logger, cancellationToken).ConfigureAwait(false);
+                await SeedInitialAdminAsync(connectionFactory, configuration, passwordHasher, logger, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -39,14 +42,13 @@ namespace Dairy_Management_System.Data
         }
 
         private static async Task SeedInitialAdminAsync(
-            string connectionString,
+            ISqlConnectionFactory connectionFactory,
             IConfiguration configuration,
             IPasswordHasher<UserAuthRecord> passwordHasher,
             ILogger logger,
             CancellationToken cancellationToken)
         {
-            await using var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+            await using var connection = await connectionFactory.CreateAdminConnectionAsync(cancellationToken).ConfigureAwait(false);
 
             // Step 1: Check if an active Admin already exists in dbo.Users
             const string checkAdminSql = @"

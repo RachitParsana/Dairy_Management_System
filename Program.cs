@@ -83,11 +83,23 @@ namespace Dairy_Management_System
             // Register Cryptographic Password Hasher
             builder.Services.AddScoped<IPasswordHasher<UserAuthRecord>, PasswordHasher<UserAuthRecord>>();
 
+            // Register Centralized SQL Connection Factory (Enforcing least-privilege db_dms_app execution boundary)
+            builder.Services.AddSingleton<ISqlConnectionFactory, SqlConnectionFactory>();
+
             // Register SQL Server ADO.NET Authentication Repository
             builder.Services.AddScoped<IUserAuthRepository, UserAuthRepository>();
 
             // Register Authentication Service
             builder.Services.AddScoped<IUserAuthService, UserAuthService>();
+
+            // Register Customer Management ADO.NET Repositories
+            builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+            builder.Services.AddScoped<ICustomerSubscriptionRepository, CustomerSubscriptionRepository>();
+            builder.Services.AddScoped<ICustomerVacationRepository, CustomerVacationRepository>();
+
+            // Register Customer Management Application Services
+            builder.Services.AddScoped<ICustomerService, CustomerService>();
+            builder.Services.AddScoped<ICustomerVacationService, CustomerVacationService>();
 
             var app = builder.Build();
 
