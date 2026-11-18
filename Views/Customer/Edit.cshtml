@@ -1,0 +1,227 @@
+@model Dairy_Management_System.Models.Customer.EditCustomerViewModel
+@{
+    Layout = "_LayoutAdmin";
+    ViewData["Title"] = $"Edit Customer — {Model.CustomerCode}";
+    ViewData["ActiveMenu"] = "Customers";
+
+    var routes = ViewBag.Routes as List<Dairy_Management_System.Models.Customer.RouteLookupItem> ?? new();
+}
+
+<!-- Page Header & Breadcrumb -->
+<div class="card border-0 bg-white shadow-sm mb-4">
+    <div class="card-body py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a asp-action="Index" class="text-decoration-none text-muted small">
+                    <i class="cil-chevron-left me-1"></i> Customer Directory
+                </a>
+                <span class="text-muted small">&bull;</span>
+                <a asp-action="Details" asp-route-id="@Model.CustomerId" class="text-decoration-none text-muted small">
+                    Profile (@Model.CustomerCode)
+                </a>
+                <span class="text-muted small">&bull;</span>
+                <span class="badge bg-secondary-subtle text-secondary">Edit Demographics</span>
+            </div>
+            <h4 class="fw-bold text-dark mb-0">Edit Customer Information</h4>
+            <p class="text-muted small mb-0 mt-1">
+                Update customer contact details, delivery address, and routing sequence preferences.
+            </p>
+        </div>
+        <div>
+            <a asp-action="Details" asp-route-id="@Model.CustomerId" class="btn btn-outline-secondary btn-sm px-3">
+                <i class="cil-x me-1"></i> Cancel
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Validation Error Alert -->
+@if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
+{
+    <div class="alert alert-danger border-danger-subtle shadow-sm mb-4" role="alert">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <i class="cil-warning fs-5 text-danger"></i>
+            <h6 class="fw-bold mb-0">Please resolve the following errors:</h6>
+        </div>
+        <div asp-validation-summary="All" class="text-danger small mb-0 ps-3"></div>
+    </div>
+}
+
+<form asp-action="Edit" asp-route-id="@Model.CustomerId" method="post" id="editCustomerForm">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="CustomerId" />
+    <input type="hidden" asp-for="CustomerCode" />
+    <input type="hidden" asp-for="Status" />
+
+    <div class="row g-4">
+        <!-- Main Form Column -->
+        <div class="col-lg-8">
+            <!-- Section 1: Demographics -->
+            <div class="card card-dms shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="cil-user text-success"></i>
+                        <span class="fw-semibold">Personal &amp; Contact Details</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="FullName" class="form-label small fw-semibold">
+                                Full Name (English) <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="FullName" class="form-control" required />
+                            <span asp-validation-for="FullName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="FullNameGujarati" class="form-label small fw-semibold">
+                                Full Name (Gujarati)
+                            </label>
+                            <input asp-for="FullNameGujarati" class="form-control" placeholder="રમેશ પટેલ" />
+                            <span asp-validation-for="FullNameGujarati" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Phone" class="form-label small fw-semibold">
+                                Primary Phone Number <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0 text-muted">+91</span>
+                                <input asp-for="Phone" class="form-control border-start-0 font-tabular" maxlength="15" required />
+                            </div>
+                            <span asp-validation-for="Phone" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="AlternatePhone" class="form-label small fw-semibold">
+                                Alternate Phone Number
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0 text-muted">+91</span>
+                                <input asp-for="AlternatePhone" class="form-control border-start-0 font-tabular" maxlength="15" />
+                            </div>
+                            <span asp-validation-for="AlternatePhone" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Delivery & Route -->
+            <div class="card card-dms shadow-sm">
+                <div class="card-header bg-light">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="cil-map text-primary"></i>
+                        <span class="fw-semibold">Address &amp; Route Logistics</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="Address" class="form-label small fw-semibold">
+                                Full Address <span class="text-danger">*</span>
+                            </label>
+                            <textarea asp-for="Address" class="form-control" rows="2" required></textarea>
+                            <span asp-validation-for="Address" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Area" class="form-label small fw-semibold">
+                                Area / Locality <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Area" class="form-control" required />
+                            <span asp-validation-for="Area" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Landmark" class="form-label small fw-semibold">
+                                Nearest Landmark
+                            </label>
+                            <input asp-for="Landmark" class="form-control" />
+                            <span asp-validation-for="Landmark" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="RouteId" class="form-label small fw-semibold">
+                                Delivery Route <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="RouteId" class="form-select" required>
+                                @foreach (var r in routes)
+                                {
+                                    <option value="@r.RouteId" selected="@(Model.RouteId == r.RouteId)">@r.RouteCode - @r.RouteName</option>
+                                }
+                            </select>
+                            <span asp-validation-for="RouteId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="DeliverySequence" class="form-label small fw-semibold">
+                                Route Sequence #
+                            </label>
+                            <input asp-for="DeliverySequence" type="number" class="form-control font-tabular" min="0" />
+                            <span asp-validation-for="DeliverySequence" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="PreferredShift" class="form-label small fw-semibold">
+                                Preferred Shift <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="PreferredShift" class="form-select" required>
+                                <option value="Both">Both (Morning &amp; Evening)</option>
+                                <option value="Morning">Morning Shift Only</option>
+                                <option value="Evening">Evening Shift Only</option>
+                            </select>
+                            <span asp-validation-for="PreferredShift" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Notes" class="form-label small fw-semibold">
+                                Delivery Notes &amp; Special Instructions
+                            </label>
+                            <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                            <span asp-validation-for="Notes" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Info & Actions Column -->
+        <div class="col-lg-4">
+            <div class="card card-dms shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <span class="fw-semibold">Account Status &amp; Immutable Identity</span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Customer Code (Immutable)</label>
+                        <div class="fw-bold font-tabular fs-5 text-primary">@Model.CustomerCode</div>
+                        <div class="form-text small">System-assigned unique identifier. Cannot be altered.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Current Lifecycle Status</label>
+                        <div>
+                            @if (Model.Status == "Active")
+                            {
+                                <span class="badge-status badge-active">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge-status badge-inactive">Inactive</span>
+                            }
+                        </div>
+                        <div class="form-text small">Status changes must be performed through Deactivate/Reactivate workflows.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-dms shadow-sm">
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-admin-primary py-2 fw-semibold shadow-sm">
+                            <i class="cil-check me-1"></i> Save Changes
+                        </button>
+                        <a asp-action="Details" asp-route-id="@Model.CustomerId" class="btn btn-outline-secondary py-2 text-center text-decoration-none">
+                            Discard &amp; Return to Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

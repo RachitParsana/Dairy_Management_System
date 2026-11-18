@@ -1,0 +1,1443 @@
+@model Dairy_Management_System.Models.Customer.CustomerDetailsViewModel
+@{
+    Layout = "_LayoutAdmin";
+    ViewData["Title"] = $"Customer Profile — {Model.Customer.CustomerCode}";
+    ViewData["ActiveMenu"] = "Customers";
+
+    var routes = ViewBag.Routes as List<Dairy_Management_System.Models.Customer.RouteLookupItem> ?? new();
+    var deliveryBoys = ViewBag.DeliveryBoys as List<Dairy_Management_System.Models.Customer.DeliveryBoyLookupItem> ?? new();
+    var categories = ViewBag.MilkCategories as List<Dairy_Management_System.Models.Customer.MilkCategoryLookupItem> ?? new();
+}
+
+<!-- Top Navigation & Action Header -->
+<div class="card border-0 bg-white shadow-sm mb-4">
+    <div class="card-body py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a asp-action="Index" class="text-decoration-none text-muted small">
+                    <i class="cil-chevron-left me-1"></i> Customer Directory
+                </a>
+                <span class="text-muted small">&bull;</span>
+                <span class="badge bg-light text-secondary border font-tabular">@Model.Customer.CustomerCode</span>
+                @if (Model.Customer.Status == "Active")
+                {
+                    <span class="badge-status badge-active">Active</span>
+                }
+                else
+                {
+                    <span class="badge-status badge-inactive">Inactive</span>
+                }
+                @if (Model.IsOnVacationToday)
+                {
+                    <span class="badge-vacation-indicator text-warning bg-warning-subtle border-warning-subtle">
+                        <i class="cil-beach-access me-1"></i> Vacation Active Today
+                    </span>
+                }
+            </div>
+            <h4 class="fw-bold text-dark mb-0">
+                @Model.Customer.FullName
+                @if (!string.IsNullOrWhiteSpace(Model.Customer.FullNameGujarati))
+                {
+                    <span class="text-muted fw-normal fs-5 ms-1">(@Model.Customer.FullNameGujarati)</span>
+                }
+            </h4>
+            <div class="text-muted small mt-1">
+                <i class="cil-location-pin me-1"></i>@(Model.Customer.Area ?? "No area specified") &bull; Route: <strong>@Model.RouteName</strong> &bull; Sequence: <strong>#@Model.Customer.DeliverySequence</strong>
+            </div>
+        </div>
+
+        <!-- Quick Action Bar -->
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <a asp-action="Edit" asp-route-id="@Model.Customer.CustomerId" class="btn btn-outline-secondary btn-sm">
+                <i class="cil-pencil me-1"></i> Edit Demographics
+            </a>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="openReassignModal()">
+                <i class="cil-bike me-1"></i> Reassign Agent
+            </button>
+            <button type="button" class="btn btn-outline-warning btn-sm" onclick="openRequestVacationModal()">
+                <i class="cil-beach-access me-1"></i> Record Vacation
+            </button>
+            @if (Model.Customer.Status == "Active")
+            {
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="openDeactivateModal()">
+                    <i class="cil-user-x me-1"></i> Deactivate
+                </button>
+            }
+            else
+            {
+                <button type="button" class="btn btn-outline-success btn-sm" onclick="openReactivateModal()">
+                    <i class="cil-reload me-1"></i> Reactivate
+                </button>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Alerts -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show border-success-subtle shadow-sm mb-4" role="alert">
+        <div class="d-flex align-items-center gap-2">
+            <i class="cil-check-circle fs-5 text-success"></i>
+            <div>@TempData["SuccessMessage"]</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show border-danger-subtle shadow-sm mb-4" role="alert">
+        <div class="d-flex align-items-center gap-2">
+            <i class="cil-warning fs-5 text-danger"></i>
+            <div>@TempData["ErrorMessage"]</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Profile Overview Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card-stat p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="stat-label">Assigned Delivery Agent</span>
+                <div class="stat-icon" style="background-color: #ecfdf5; color: #059669;">
+                    <i class="cil-bike"></i>
+                </div>
+            </div>
+            <div class="stat-value fs-5">
+                @(Model.DeliveryBoyName ?? "Unassigned")
+            </div>
+            <div class="stat-subtitle text-muted small">
+                @if (!string.IsNullOrWhiteSpace(Model.DeliveryBoyPhone))
+                {
+                    <a href="tel:@Model.DeliveryBoyPhone" class="text-decoration-none text-dark font-tabular">
+                        <i class="cil-phone text-success me-1"></i>@Model.DeliveryBoyPhone
+                    </a>
+                }
+                else
+                {
+                    <span>No agent assigned</span>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card-stat p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="stat-label">Daily Liquid Volume</span>
+                <div class="stat-icon" style="background-color: #eff6ff; color: #2563eb;">
+                    <i class="cil-drop"></i>
+                </div>
+            </div>
+            <div class="stat-value font-tabular">
+                @Model.TotalDailyVolumeLitres <span class="fs-6 fw-normal text-muted">L/day</span>
+            </div>
+            <div class="stat-subtitle text-muted small">
+                M: @Model.TotalDailyMorningLitres L &bull; E: @Model.TotalDailyEveningLitres L
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card-stat p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="stat-label">Active Subscriptions</span>
+                <div class="stat-icon" style="background-color: #f1f5f9; color: #475569;">
+                    <i class="cil-calendar"></i>
+                </div>
+            </div>
+            <div class="stat-value font-tabular">
+                @Model.ActiveSubscriptions.Count(s => s.IsActive)
+            </div>
+            <div class="stat-subtitle text-muted small">
+                @Model.CustomPrices.Count(p => p.IsActive) custom price agreement(s)
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card-stat p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="stat-label">Account Balance</span>
+                <div class="stat-icon" style="background-color: #fefce8; color: #ca8a04;">
+                    <i class="cil-credit-card"></i>
+                </div>
+            </div>
+            <div class="stat-value font-tabular">
+                ₹@Model.OutstandingAccountBalance.ToString("N2")
+            </div>
+            <div class="stat-subtitle text-muted small">Current ledger balance</div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabbed Navigation Interface -->
+<div class="card card-dms shadow-sm">
+    <div class="card-header bg-white border-bottom-0 pb-0 pt-3">
+        <ul class="nav nav-tabs card-header-tabs" id="customerTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-semibold" id="tab-overview-btn" data-coreui-toggle="tab" data-coreui-target="#tab-overview" type="button" role="tab" aria-selected="true">
+                    <i class="cil-user me-1 text-primary"></i> Demographic &amp; Routing
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-semibold" id="tab-subscriptions-btn" data-coreui-toggle="tab" data-coreui-target="#tab-subscriptions" type="button" role="tab" aria-selected="false">
+                    <i class="cil-drop me-1 text-success"></i> Subscriptions &amp; Pricing
+                    <span class="badge bg-success-subtle text-success ms-1 font-tabular">@Model.ActiveSubscriptions.Count</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-semibold" id="tab-history-btn" data-coreui-toggle="tab" data-coreui-target="#tab-history" type="button" role="tab" aria-selected="false">
+                    <i class="cil-bike me-1 text-info"></i> Agent Assignment History
+                    <span class="badge bg-secondary-subtle text-secondary ms-1 font-tabular">@Model.AssignmentHistory.Count</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-semibold" id="tab-vacation-btn" data-coreui-toggle="tab" data-coreui-target="#tab-vacation" type="button" role="tab" aria-selected="false">
+                    <i class="cil-beach-access me-1 text-warning"></i> Vacation Management
+                    <span class="badge bg-warning-subtle text-warning ms-1 font-tabular">@Model.RecentVacations.Count</span>
+                </button>
+            </li>
+        </ul>
+    </div>
+    <div class="card-body p-4">
+        <div class="tab-content" id="customerTabContent">
+
+            <!-- ========================================================================= -->
+            <!-- TAB 1: DEMOGRAPHIC & ROUTING OVERVIEW                                     -->
+            <!-- ========================================================================= -->
+            <div class="tab-pane fade show active" id="tab-overview" role="tabpanel">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="card border-0 bg-light p-3 h-100 rounded-3">
+                            <h6 class="fw-bold text-dark mb-3">
+                                <i class="cil-contact me-1 text-primary"></i> Customer Contact Information
+                            </h6>
+                            <table class="table table-sm table-borderless mb-0">
+                                <tr>
+                                    <td class="text-muted py-1" style="width: 140px;">Customer Code:</td>
+                                    <td class="fw-bold font-tabular py-1 text-primary">@Model.Customer.CustomerCode</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted py-1">Full Name:</td>
+                                    <td class="fw-semibold py-1">@Model.Customer.FullName</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted py-1">Gujarati Name:</td>
+                                    <td class="py-1">@(Model.Customer.FullNameGujarati ?? "—")</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted py-1">Primary Phone:</td>
+                                    <td class="py-1">
+                                        <a href="tel:@Model.Customer.Phone" class="text-dark font-tabular text-decoration-none">
+                                            <i class="cil-phone text-success me-1"></i>@Model.Customer.Phone
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted py-1">Alternate Phone:</td>
+                                    <td class="py-1 font-tabular">@(Model.Customer.AlternatePhone ?? "—")</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted py-1">Delivery Address:</td>
+                                    <td class="py-1">@Model.Customer.Address</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted py-1">Area / Locality:</td>
+                                    <td class="py-1">@(Model.Customer.Area ?? "—")</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted py-1">Landmark:</td>
+                                    <td class="py-1">@(Model.Customer.Landmark ?? "—")</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card border-0 bg-light p-3 h-100 rounded-3">
+                            <h6 class="fw-bold text-dark mb-3">
+                                <i class="cil-map me-1 text-success"></i> Delivery Logistics &amp; Account Audit
+                            </h6>
+                            <table class="table table-sm table-borderless mb-0">
+                                <tr>
+                                    <td class="text-muted py-1" style="width: 140px;">Route:</td>
+                                    <td class="fw-semibold py-1">@Model.RouteName</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted py-1">Assigned Agent:</td>
+                                    <td class="py-1">
+                                        @if (!string.IsNullOrWhiteSpace(Model.DeliveryBoyName))
+                                        {
+                                            <span class="badge bg-white text-dark border">@Model.DeliveryBoyName</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-warning">Unassigned</span>
+                                        }
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted py-1">Delivery Sequence:</td>
+                                    <td class="py-1 font-tabular">#@Model.Customer.DeliverySequence</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted py-1">Preferred Shift:</td>
+                                    <td class="py-1"><span class="badge bg-light text-secondary border">@Model.Customer.PreferredShift</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted py-1">Service Start Date:</td>
+                                    <td class="py-1 font-tabular">@Model.Customer.DeliveryStartDate.ToString("MMM dd, yyyy")</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted py-1">Account Created:</td>
+                                    <td class="py-1 font-tabular">@Model.Customer.CreatedAt.ToString("MMM dd, yyyy HH:mm")</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted py-1">Internal Notes:</td>
+                                    <td class="py-1 text-secondary small">@(string.IsNullOrWhiteSpace(Model.Customer.Notes) ? "No notes recorded." : Model.Customer.Notes)</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================================================= -->
+            <!-- TAB 2: SUBSCRIPTIONS & CUSTOM PRICING                                     -->
+            <!-- ========================================================================= -->
+            <div class="tab-pane fade" id="tab-subscriptions" role="tabpanel">
+                <!-- Section A: Active Subscriptions -->
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0">Product Subscriptions</h6>
+                        <span class="text-muted small">Multi-category recurring orders with atomic schedule transitions.</span>
+                    </div>
+                    <button type="button" class="btn btn-admin-primary btn-sm" onclick="openAddSubscriptionModal()">
+                        <i class="cil-plus me-1"></i> Add Product Subscription
+                    </button>
+                </div>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-hover table-dms align-middle border">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Category</th>
+                                <th>Shift</th>
+                                <th class="text-end">Daily Litres</th>
+                                <th>Schedule</th>
+                                <th>Active Delivery Days</th>
+                                <th>Effective Period</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.ActiveSubscriptions.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="8" class="text-center py-4 text-muted">
+                                        No active subscriptions configured. Click "Add Product Subscription" to configure milk deliveries.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var sub in Model.ActiveSubscriptions)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold text-dark">
+                                            <i class="cil-drop text-success me-1"></i>@sub.CategoryName
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-secondary border">@sub.Shift</span>
+                                        </td>
+                                        <td class="text-end font-tabular fw-bold text-dark">
+                                            @sub.DailyLiquidVolumeLitres.ToString("N2") L
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                                @sub.DeliverySchedule
+                                            </span>
+                                        </td>
+                                        <td>
+                                            @{
+                                                var dayNums = (sub.DeliveryDays ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToList();
+                                                var dayLabels = new Dictionary<string, string> {
+                                                    {"1", "Mon"}, {"2", "Tue"}, {"3", "Wed"}, {"4", "Thu"}, {"5", "Fri"}, {"6", "Sat"}, {"7", "Sun"}
+                                                };
+                                            }
+                                            <div class="d-flex flex-wrap gap-1">
+                                                @foreach (var kvp in dayLabels)
+                                                {
+                                                    if (dayNums.Contains(kvp.Key))
+                                                    {
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-1 py-0 small">@kvp.Value</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-light text-muted border px-1 py-0 small text-decoration-line-through">@kvp.Value</span>
+                                                    }
+                                                }
+                                            </div>
+                                        </td>
+                                        <td class="small font-tabular">
+                                            <div>From: @sub.EffectiveFrom.ToString("MMM dd, yyyy")</div>
+                                            @if (sub.EffectiveTo.HasValue)
+                                            {
+                                                <div class="text-muted">To: @sub.EffectiveTo.Value.ToString("MMM dd, yyyy")</div>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            @if (sub.IsActive)
+                                            {
+                                                <span class="badge-status badge-active">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge-status badge-inactive">Ended</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            @if (sub.IsActive)
+                                            {
+                                                <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2"
+                                                        onclick="openUpdateScheduleModal(@sub.SubscriptionId, '@sub.CategoryName', '@sub.DeliverySchedule', '@sub.DeliveryDays')">
+                                                    <i class="cil-sync me-1"></i> Update Schedule
+                                                </button>
+                                                <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2"
+                                                        onclick="openEndSubscriptionModal(@sub.SubscriptionId, '@sub.CategoryName')">
+                                                    <i class="cil-x me-1"></i> End
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">&mdash;</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Section B: Custom Pricing Agreements -->
+                <div class="d-flex align-items-center justify-content-between mb-3 mt-4 pt-3 border-top">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0">Custom Pricing Agreements</h6>
+                        <span class="text-muted small">Agreed overrides to default category retail price for this customer.</span>
+                    </div>
+                    <button type="button" class="btn btn-outline-success btn-sm" onclick="openSetCustomPriceModal()">
+                        <i class="cil-tag me-1"></i> Set Custom Price
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover table-dms align-middle border">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Category</th>
+                                <th class="text-end">Default Retail (₹/L)</th>
+                                <th class="text-end">Agreed Price (₹/L)</th>
+                                <th class="text-end">Difference</th>
+                                <th>Effective Period</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.CustomPrices.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="7" class="text-center py-4 text-muted">
+                                        No custom prices set. Standard retail prices apply for all categories.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var price in Model.CustomPrices)
+                                {
+                                    var diff = price.CustomPrice - price.StandardDefaultPrice;
+                                    <tr>
+                                        <td class="fw-semibold text-dark">@price.CategoryName</td>
+                                        <td class="text-end font-tabular text-muted">₹@price.StandardDefaultPrice.ToString("N2")</td>
+                                        <td class="text-end font-tabular fw-bold text-success">₹@price.CustomPrice.ToString("N2")</td>
+                                        <td class="text-end font-tabular">
+                                            @if (diff < 0)
+                                            {
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                                    Discount: -₹@Math.Abs(diff).ToString("N2")
+                                                </span>
+                                            }
+                                            else if (diff > 0)
+                                            {
+                                                <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                                    Premium: +₹@diff.ToString("N2")
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">Same as default</span>
+                                            }
+                                        </td>
+                                        <td class="small font-tabular">
+                                            <div>From: @price.EffectiveFrom.ToString("MMM dd, yyyy")</div>
+                                            @if (price.EffectiveTo.HasValue)
+                                            {
+                                                <div class="text-muted">To: @price.EffectiveTo.Value.ToString("MMM dd, yyyy")</div>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            @if (price.IsActive)
+                                            {
+                                                <span class="badge-status badge-active">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge-status badge-inactive">Ended</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            @if (price.IsActive)
+                                            {
+                                                <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2"
+                                                        onclick="openEndCustomPriceModal(@price.PricingId, '@price.CategoryName')">
+                                                    <i class="cil-x me-1"></i> End Agreement
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">&mdash;</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ========================================================================= -->
+            <!-- TAB 3: AGENT ASSIGNMENT HISTORY                                           -->
+            <!-- ========================================================================= -->
+            <div class="tab-pane fade" id="tab-history" role="tabpanel">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0">Delivery Boy Assignment Audit History</h6>
+                        <span class="text-muted small">Full historical traceability of route delivery agent assignments.</span>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="openReassignModal()">
+                        <i class="cil-bike me-1"></i> Reassign Delivery Boy
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover table-dms align-middle border">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Assignment ID</th>
+                                <th>Delivery Boy</th>
+                                <th>Assigned From</th>
+                                <th>Assigned To</th>
+                                <th>Reason / Notes</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-end">Recorded On</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.AssignmentHistory.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="7" class="text-center py-4 text-muted">
+                                        No assignment history recorded.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var h in Model.AssignmentHistory)
+                                {
+                                    <tr>
+                                        <td class="font-tabular fw-medium">#@h.AssignmentId</td>
+                                        <td class="fw-semibold text-dark">
+                                            <i class="cil-bike text-primary me-1"></i>@h.DeliveryBoyName
+                                        </td>
+                                        <td class="font-tabular">@h.AssignedFrom.ToString("MMM dd, yyyy")</td>
+                                        <td class="font-tabular">
+                                            @(h.AssignedTo.HasValue ? h.AssignedTo.Value.ToString("MMM dd, yyyy") : "Current")
+                                        </td>
+                                        <td class="small text-muted">@(h.Notes ?? "—")</td>
+                                        <td class="text-center">
+                                            @if (h.IsActive)
+                                            {
+                                                <span class="badge-status badge-active">Current Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge-status badge-inactive">Archived</span>
+                                            }
+                                        </td>
+                                        <td class="text-end small font-tabular text-muted">
+                                            @h.CreatedAt.ToString("MMM dd, yyyy HH:mm")
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ========================================================================= -->
+            <!-- TAB 4: VACATION MANAGEMENT & SHIFT LOCKOUTS                               -->
+            <!-- ========================================================================= -->
+            <div class="tab-pane fade" id="tab-vacation" role="tabpanel">
+                <!-- Shift Lockout Notice -->
+                <div class="alert alert-info border-info-subtle shadow-sm mb-4">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <i class="cil-beach-access fs-5 text-primary"></i>
+                        <h6 class="fw-bold mb-0">Shift Exclusion &amp; Lockout Invariants</h6>
+                    </div>
+                    <div class="small text-muted">
+                        Approved vacations automatically lock morning and/or evening shifts for this customer.
+                        During locked periods, daily delivery runsheets exclude customer stops to prevent accidental deliveries and false billing entries.
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0">Vacation Absence Logs</h6>
+                        <span class="text-muted small">Pending and approved vacation requests with shift boundaries and early resumption.</span>
+                    </div>
+                    <button type="button" class="btn btn-admin-primary btn-sm" onclick="openRequestVacationModal()">
+                        <i class="cil-plus me-1"></i> Record Vacation Request
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover table-dms align-middle border">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Date Range</th>
+                                <th>Shift</th>
+                                <th>Reason</th>
+                                <th>Approval &amp; Audit</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.RecentVacations.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="7" class="text-center py-4 text-muted">
+                                        No vacations recorded for this customer.
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var vac in Model.RecentVacations)
+                                {
+                                    <tr>
+                                        <td class="font-tabular fw-bold text-secondary">#@vac.VacationId</td>
+                                        <td class="font-tabular">
+                                            <div class="fw-semibold text-dark">
+                                                @vac.StartDate.ToString("MMM dd, yyyy") &rarr; @vac.EndDate.ToString("MMM dd, yyyy")
+                                            </div>
+                                            @if (vac.ResumedDate.HasValue)
+                                            {
+                                                <div class="text-success small">
+                                                    <i class="cil-check me-1"></i>Resumed Early: @vac.ResumedDate.Value.ToString("MMM dd, yyyy")
+                                                </div>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-secondary border">@vac.Shift</span>
+                                        </td>
+                                        <td class="small text-muted">@(vac.Reason ?? "—")</td>
+                                        <td class="small font-tabular">
+                                            @if (!string.IsNullOrWhiteSpace(vac.ApprovedByName))
+                                            {
+                                                <div>Approved By: <strong>@vac.ApprovedByName</strong></div>
+                                                <div class="text-muted">@(vac.ApprovedAt.HasValue ? vac.ApprovedAt.Value.ToString("MMM dd, yyyy") : "")</div>
+                                            }
+                                            else if (!string.IsNullOrWhiteSpace(vac.RejectionReason))
+                                            {
+                                                <div class="text-danger">Reason: @vac.RejectionReason</div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Awaiting action</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            @if (vac.Status == "Approved")
+                                            {
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Approved</span>
+                                            }
+                                            else if (vac.Status == "Pending")
+                                            {
+                                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">Pending</span>
+                                            }
+                                            else if (vac.Status == "Rejected")
+                                            {
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">Rejected</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary-subtle text-secondary border px-2 py-1">@vac.Status</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            @if (vac.Status == "Pending")
+                                            {
+                                                <form asp-action="ApproveVacation" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="vacationId" value="@vac.VacationId" />
+                                                    <input type="hidden" name="customerId" value="@Model.Customer.CustomerId" />
+                                                    <button type="submit" class="btn btn-outline-success btn-sm py-0 px-2" title="Approve vacation and lock shifts">
+                                                        <i class="cil-check"></i> Approve
+                                                    </button>
+                                                </form>
+                                                <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2"
+                                                        onclick="openRejectVacationModal(@vac.VacationId)">
+                                                    <i class="cil-x"></i> Reject
+                                                </button>
+                                            }
+                                            else if (vac.Status == "Approved" && !vac.ResumedDate.HasValue && vac.EndDate >= DateOnly.FromDateTime(DateTime.Today))
+                                            {
+                                                <button type="button" class="btn btn-outline-primary btn-sm py-0 px-2"
+                                                        onclick="openResumeEarlyModal(@vac.VacationId, '@vac.StartDate.ToString("yyyy-MM-dd")', '@vac.EndDate.ToString("yyyy-MM-dd")')">
+                                                    <i class="cil-media-play me-1"></i> Resume Early
+                                                </button>
+                                                <form asp-action="CancelVacation" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="vacationId" value="@vac.VacationId" />
+                                                    <input type="hidden" name="customerId" value="@Model.Customer.CustomerId" />
+                                                    <button type="submit" class="btn btn-outline-secondary btn-sm py-0 px-2"
+                                                            onclick="return confirm('Cancel this approved vacation? Delivery shifts will be immediately restored.');">
+                                                        <i class="cil-x"></i> Cancel
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">&mdash;</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: UPDATE SUBSCRIPTION SCHEDULE (ATOMIC STORED PROCEDURE TRANSITION)  -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="updateScheduleModal" tabindex="-1" aria-labelledby="updateScheduleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="UpdateSubscriptionSchedule" method="post" id="updateScheduleForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="customerId" value="@Model.Customer.CustomerId" />
+                <input type="hidden" name="subscriptionId" id="schedSubscriptionId" />
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold text-dark" id="updateScheduleModalLabel">
+                        <i class="cil-sync text-primary me-2"></i> Update Delivery Schedule
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-light border small mb-3">
+                        Product: <strong id="schedCategoryName" class="text-dark"></strong>
+                        <div class="text-muted small mt-1">Atomic parent/child transition managed via dbo.usp_CustomerSubscription_UpdateSchedule.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">New Delivery Schedule <span class="text-danger">*</span></label>
+                        <select name="newSchedule" id="schedSelect" class="form-select" required>
+                            <option value="Daily">Daily (All 7 Days)</option>
+                            <option value="Weekdays">Weekdays (Mon-Fri)</option>
+                            <option value="Weekends">Weekends (Sat-Sun)</option>
+                            <option value="CustomDays">Custom Days</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Active Days of Week</label>
+                        <div class="d-flex flex-wrap gap-2" id="modalSchedCheckboxes">
+                            <div class="form-check form-check-inline me-1">
+                                <input class="form-check-input modal-chk-day" type="checkbox" value="1" id="mchk_1" checked disabled>
+                                <label class="form-check-label small" for="mchk_1">Mon</label>
+                            </div>
+                            <div class="form-check form-check-inline me-1">
+                                <input class="form-check-input modal-chk-day" type="checkbox" value="2" id="mchk_2" checked disabled>
+                                <label class="form-check-label small" for="mchk_2">Tue</label>
+                            </div>
+                            <div class="form-check form-check-inline me-1">
+                                <input class="form-check-input modal-chk-day" type="checkbox" value="3" id="mchk_3" checked disabled>
+                                <label class="form-check-label small" for="mchk_3">Wed</label>
+                            </div>
+                            <div class="form-check form-check-inline me-1">
+                                <input class="form-check-input modal-chk-day" type="checkbox" value="4" id="mchk_4" checked disabled>
+                                <label class="form-check-label small" for="mchk_4">Thu</label>
+                            </div>
+                            <div class="form-check form-check-inline me-1">
+                                <input class="form-check-input modal-chk-day" type="checkbox" value="5" id="mchk_5" checked disabled>
+                                <label class="form-check-label small" for="mchk_5">Fri</label>
+                            </div>
+                            <div class="form-check form-check-inline me-1">
+                                <input class="form-check-input modal-chk-day" type="checkbox" value="6" id="mchk_6" checked disabled>
+                                <label class="form-check-label small" for="mchk_6">Sat</label>
+                            </div>
+                            <div class="form-check form-check-inline me-1">
+                                <input class="form-check-input modal-chk-day" type="checkbox" value="7" id="mchk_7" checked disabled>
+                                <label class="form-check-label small" for="mchk_7">Sun</label>
+                            </div>
+                        </div>
+                        <input type="hidden" name="newDays" id="modalSchedSerializedDays" value="1,2,3,4,5,6,7" />
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-admin-primary btn-sm px-4">
+                        <i class="cil-check me-1"></i> Apply Atomic Schedule Update
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: ADD PRODUCT SUBSCRIPTION                                           -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="addSubscriptionModal" tabindex="-1" aria-labelledby="addSubscriptionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="ConfigureSubscription" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="customerId" value="@Model.Customer.CustomerId" />
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold text-dark" id="addSubscriptionModalLabel">
+                        <i class="cil-drop text-success me-2"></i> Add Product Subscription Line
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Milk Category <span class="text-danger">*</span></label>
+                        <select name="subscriptionInput.CategoryId" class="form-select" required>
+                            @foreach (var cat in categories)
+                            {
+                                <option value="@cat.CategoryId">@cat.CategoryName (@cat.CategoryCode) — ₹@cat.DefaultPrice/L</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Delivery Shift <span class="text-danger">*</span></label>
+                            <select name="subscriptionInput.Shift" class="form-select" required>
+                                <option value="Morning">Morning</option>
+                                <option value="Evening">Evening</option>
+                                <option value="Both">Both Shifts</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Quantity (Litres) <span class="text-danger">*</span></label>
+                            <input type="number" name="subscriptionInput.Quantity" class="form-control font-tabular"
+                                   step="0.25" min="0.25" max="50" value="1.00" required />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Delivery Schedule <span class="text-danger">*</span></label>
+                        <select name="subscriptionInput.DeliverySchedule" class="form-select" id="newSubSchedSelect" required>
+                            <option value="Daily">Daily (All 7 Days)</option>
+                            <option value="Weekdays">Weekdays (Mon-Fri)</option>
+                            <option value="Weekends">Weekends (Sat-Sun)</option>
+                            <option value="CustomDays">Custom Days</option>
+                        </select>
+                    </div>
+                    <input type="hidden" name="subscriptionInput.DeliveryDays" id="newSubSchedDays" value="1,2,3,4,5,6,7" />
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Special Agreed Price (₹/L) <span class="small">(Optional override)</span></label>
+                        <input type="number" name="subscriptionInput.CustomPriceOverride" class="form-control font-tabular" step="0.50" min="0" placeholder="Default retail price applies" />
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-admin-primary btn-sm px-4">
+                        <i class="cil-check me-1"></i> Add Subscription
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: END SUBSCRIPTION                                                   -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="endSubscriptionModal" tabindex="-1" aria-labelledby="endSubModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="EndSubscription" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="customerId" value="@Model.Customer.CustomerId" />
+                <input type="hidden" name="subscriptionId" id="endSubId" />
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold" id="endSubModalLabel">End Subscription Line</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">
+                        Are you sure you want to end delivery for product <strong id="endSubCategoryName" class="text-dark"></strong>?
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Effective End Date <span class="text-danger">*</span></label>
+                        <input type="date" name="effectiveToDate" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger btn-sm px-4">Confirm End</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: SET CUSTOM PRICE                                                   -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="setCustomPriceModal" tabindex="-1" aria-labelledby="setCustomPriceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="SetCustomPrice" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="customerId" value="@Model.Customer.CustomerId" />
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold text-dark" id="setCustomPriceModalLabel">
+                        <i class="cil-tag text-success me-2"></i> Set Custom Price Agreement
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Product Category <span class="text-danger">*</span></label>
+                        <select name="categoryId" class="form-select" required>
+                            @foreach (var cat in categories)
+                            {
+                                <option value="@cat.CategoryId">@cat.CategoryName (@cat.CategoryCode) — Default: ₹@cat.DefaultPrice/L</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Agreed Custom Price (₹/L) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white">₹</span>
+                            <input type="number" name="customPrice" class="form-control font-tabular" step="0.50" min="0" required />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Effective From Date <span class="text-danger">*</span></label>
+                        <input type="date" name="effectiveFromDate" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-admin-primary btn-sm px-4">Save Agreement</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: END CUSTOM PRICE                                                   -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="endCustomPriceModal" tabindex="-1" aria-labelledby="endCustomPriceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="EndCustomPrice" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="customerId" value="@Model.Customer.CustomerId" />
+                <input type="hidden" name="pricingId" id="endPricingId" />
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold" id="endCustomPriceModalLabel">End Custom Price Agreement</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">
+                        Terminate custom agreed price for <strong id="endPricingCategoryName" class="text-dark"></strong>?
+                        Billing will revert to standard category retail price.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Effective End Date <span class="text-danger">*</span></label>
+                        <input type="date" name="effectiveToDate" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger btn-sm px-4">End Agreement</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: REASSIGN DELIVERY BOY                                              -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="reassignModal" tabindex="-1" aria-labelledby="reassignModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="ReassignDeliveryBoy" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="CustomerId" value="@Model.Customer.CustomerId" />
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold text-dark" id="reassignModalLabel">
+                        <i class="cil-bike text-primary me-2"></i> Reassign Delivery Boy
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-light border small mb-3">
+                        Current Agent: <span class="badge bg-secondary-subtle text-secondary">@(Model.DeliveryBoyName ?? "Unassigned")</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Effective Date <span class="text-danger">*</span></label>
+                        <input type="date" name="EffectiveDate" id="reassignEffectiveDate" class="form-control"
+                               value="@DateTime.Today.ToString("yyyy-MM-dd")" min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                    </div>
+
+                    <div id="reassignDeliveryWarning" class="alert alert-warning small py-2 d-none">
+                        <i class="cil-warning me-1"></i> Today's delivery was already logged. Reassignment will apply for subsequent runs.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">New Delivery Boy <span class="text-danger">*</span></label>
+                        <select name="NewDeliveryBoyId" class="form-select" required>
+                            <option value="">-- Select Delivery Boy --</option>
+                            @foreach (var db in deliveryBoys)
+                            {
+                                <option value="@db.DeliveryBoyId">@db.FullName (@db.Phone)</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Applicable Shift</label>
+                        <select name="Shift" class="form-select">
+                            <option value="Both">Both Shifts (Morning &amp; Evening)</option>
+                            <option value="Morning">Morning Shift Only</option>
+                            <option value="Evening">Evening Shift Only</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Reason <span class="text-danger">*</span></label>
+                        <textarea name="Reason" class="form-control" rows="2" placeholder="e.g. Route optimization..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-admin-primary btn-sm px-4">Confirm Reassignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: DEACTIVATE CUSTOMER                                                -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="deactivateModal" tabindex="-1" aria-labelledby="deactivateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="Deactivate" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="CustomerId" value="@Model.Customer.CustomerId" />
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold" id="deactivateModalLabel">Deactivate Customer</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Deactivation Effective Date <span class="text-danger">*</span></label>
+                        <input type="date" name="DeactivationDate" id="deactivateDate" class="form-control"
+                               value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                    </div>
+
+                    <div id="deactivateDeliveryWarning" class="alert alert-warning small py-2 d-none">
+                        <i class="cil-warning me-1"></i> Today's delivery was already logged. Deactivation will cease future runsheet entries.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Reason for Deactivation <span class="text-danger">*</span></label>
+                        <textarea name="Reason" class="form-control" rows="3" placeholder="Reason..." required></textarea>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="ConfirmDeliveryLogged" value="true" id="chkDetailsConfirmDelivery" />
+                        <label class="form-check-label small text-muted" for="chkDetailsConfirmDelivery">
+                            I confirm deactivation will terminate active delivery subscriptions.
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger btn-sm px-4">Deactivate</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: REACTIVATE CUSTOMER                                                -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="reactivateModal" tabindex="-1" aria-labelledby="reactivateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="Reactivate" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="CustomerId" value="@Model.Customer.CustomerId" />
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold" id="reactivateModalLabel">Reactivate Customer</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Reactivation Date <span class="text-danger">*</span></label>
+                        <input type="date" name="ReactivationDate" class="form-control"
+                               value="@DateTime.Today.ToString("yyyy-MM-dd")" min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Delivery Route <span class="text-danger">*</span></label>
+                        <select name="NewRouteId" class="form-select" required>
+                            @foreach (var r in routes)
+                            {
+                                <option value="@r.RouteId" selected="@(Model.Customer.RouteId == r.RouteId)">@r.RouteCode - @r.RouteName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Delivery Sequence <span class="text-danger">*</span></label>
+                        <input type="number" name="NewSequence" class="form-control" value="@Model.Customer.DeliverySequence" min="1" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Delivery Agent <span class="text-danger">*</span></label>
+                        <select name="NewDeliveryBoyId" class="form-select" required>
+                            @foreach (var db in deliveryBoys)
+                            {
+                                <option value="@db.DeliveryBoyId" selected="@(Model.Customer.CurrentDeliveryBoyId == db.DeliveryBoyId)">@db.FullName (@db.Phone)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success btn-sm px-4 text-white">Reactivate</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: REQUEST VACATION                                                   -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="requestVacationModal" tabindex="-1" aria-labelledby="reqVacModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="RequestVacation" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="CustomerId" value="@Model.Customer.CustomerId" />
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold text-dark" id="reqVacModalLabel">
+                        <i class="cil-beach-access text-warning me-2"></i> Record Customer Vacation
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Start Date <span class="text-danger">*</span></label>
+                            <input type="date" name="StartDate" class="form-control"
+                                   value="@DateTime.Today.ToString("yyyy-MM-dd")" min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">End Date <span class="text-danger">*</span></label>
+                            <input type="date" name="EndDate" class="form-control"
+                                   value="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Applicable Shifts <span class="text-danger">*</span></label>
+                        <select name="Shift" class="form-select" required>
+                            <option value="Both">Both Morning &amp; Evening Shifts</option>
+                            <option value="Morning">Morning Shift Only</option>
+                            <option value="Evening">Evening Shift Only</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Reason for Absence</label>
+                        <textarea name="Reason" class="form-control" rows="2" placeholder="e.g. Out of town, family trip..."></textarea>
+                    </div>
+                    <div class="alert alert-info small py-2 mb-0">
+                        <i class="cil-info me-1"></i> Admin vacation entries are automatically approved. Deliveries for the selected shifts will be locked.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-admin-primary btn-sm px-4">
+                        <i class="cil-check me-1"></i> Approve &amp; Lock Deliveries
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: REJECT VACATION                                                    -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="rejectVacationModal" tabindex="-1" aria-labelledby="rejVacModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="RejectVacation" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="customerId" value="@Model.Customer.CustomerId" />
+                <input type="hidden" name="vacationId" id="rejectVacationId" />
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold" id="rejVacModalLabel">Reject Vacation Request</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Reason for Rejection <span class="text-danger">*</span></label>
+                        <textarea name="rejectionReason" class="form-control" rows="3" placeholder="Provide reason for rejecting request..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger btn-sm px-4">Reject Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: RESUME EARLY VACATION                                              -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="resumeEarlyModal" tabindex="-1" aria-labelledby="resumeEarlyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-action="ResumeEarlyVacation" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="customerId" value="@Model.Customer.CustomerId" />
+                <input type="hidden" name="vacationId" id="resumeVacationId" />
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold text-dark" id="resumeEarlyModalLabel">
+                        <i class="cil-media-play text-primary me-2"></i> Early Vacation Resumption
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">
+                        Deliveries will resume early starting on the selected date. Subsequent locked shifts will be restored to daily runsheets.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Delivery Resumption Date <span class="text-danger">*</span></label>
+                        <input type="date" name="resumedDate" id="resumeEarlyDate" class="form-control"
+                               value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-admin-primary btn-sm px-4">Confirm Resumption</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Modal Schedule update day synchronization
+        const schedSelect = document.getElementById("schedSelect");
+        if (schedSelect) {
+            schedSelect.addEventListener("change", function () {
+                syncModalScheduleDays(this.value);
+            });
+        }
+
+        const modalCheckboxes = document.querySelectorAll(".modal-chk-day");
+        modalCheckboxes.forEach(chk => {
+            chk.addEventListener("change", function () {
+                updateModalSerializedDays();
+            });
+        });
+
+        // Reassign & Deactivate date change listeners for delivery check
+        const reassignDate = document.getElementById("reassignEffectiveDate");
+        if (reassignDate) {
+            reassignDate.addEventListener("change", checkReassignDelivery);
+        }
+
+        const deactivateDate = document.getElementById("deactivateDate");
+        if (deactivateDate) {
+            deactivateDate.addEventListener("change", checkDeactivateDelivery);
+        }
+    });
+
+    function openUpdateScheduleModal(subscriptionId, categoryName, currentSchedule, currentDays) {
+        document.getElementById("schedSubscriptionId").value = subscriptionId;
+        document.getElementById("schedCategoryName").innerText = categoryName;
+        document.getElementById("schedSelect").value = currentSchedule;
+
+        syncModalScheduleDays(currentSchedule, currentDays);
+
+        const modal = new coreui.Modal(document.getElementById("updateScheduleModal"));
+        modal.show();
+    }
+
+    function syncModalScheduleDays(schedule, explicitDays) {
+        const checkboxes = document.querySelectorAll(".modal-chk-day");
+        const days = explicitDays ? explicitDays.split(",").map(d => parseInt(d.trim(), 10)) : [];
+
+        checkboxes.forEach(chk => {
+            const val = parseInt(chk.value, 10);
+            if (schedule === "Daily") {
+                chk.checked = true;
+                chk.disabled = true;
+            } else if (schedule === "Weekdays") {
+                chk.checked = val >= 1 && val <= 5;
+                chk.disabled = true;
+            } else if (schedule === "Weekends") {
+                chk.checked = val === 6 || val === 7;
+                chk.disabled = true;
+            } else if (schedule === "CustomDays") {
+                chk.disabled = false;
+                if (days.length > 0) {
+                    chk.checked = days.includes(val);
+                }
+            }
+        });
+
+        updateModalSerializedDays();
+    }
+
+    function updateModalSerializedDays() {
+        const checked = document.querySelectorAll(".modal-chk-day:checked");
+        const vals = Array.from(checked).map(c => c.value).sort((a,b) => a - b);
+        document.getElementById("modalSchedSerializedDays").value = vals.join(",");
+    }
+
+    function openAddSubscriptionModal() {
+        const modal = new coreui.Modal(document.getElementById("addSubscriptionModal"));
+        modal.show();
+    }
+
+    function openEndSubscriptionModal(subId, catName) {
+        document.getElementById("endSubId").value = subId;
+        document.getElementById("endSubCategoryName").innerText = catName;
+        const modal = new coreui.Modal(document.getElementById("endSubscriptionModal"));
+        modal.show();
+    }
+
+    function openSetCustomPriceModal() {
+        const modal = new coreui.Modal(document.getElementById("setCustomPriceModal"));
+        modal.show();
+    }
+
+    function openEndCustomPriceModal(pricingId, catName) {
+        document.getElementById("endPricingId").value = pricingId;
+        document.getElementById("endPricingCategoryName").innerText = catName;
+        const modal = new coreui.Modal(document.getElementById("endCustomPriceModal"));
+        modal.show();
+    }
+
+    function openReassignModal() {
+        const modal = new coreui.Modal(document.getElementById("reassignModal"));
+        modal.show();
+        checkReassignDelivery();
+    }
+
+    function checkReassignDelivery() {
+        const custId = @Model.Customer.CustomerId;
+        const dt = document.getElementById("reassignEffectiveDate")?.value;
+        const warning = document.getElementById("reassignDeliveryWarning");
+        if (!dt || !warning) return;
+
+        fetch(`/Customer/CheckDeliveryOnDate?customerId=${custId}&date=${dt}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.hasDelivery) warning.classList.remove("d-none");
+                else warning.classList.add("d-none");
+            })
+            .catch(() => warning.classList.add("d-none"));
+    }
+
+    function openDeactivateModal() {
+        const modal = new coreui.Modal(document.getElementById("deactivateModal"));
+        modal.show();
+        checkDeactivateDelivery();
+    }
+
+    function checkDeactivateDelivery() {
+        const custId = @Model.Customer.CustomerId;
+        const dt = document.getElementById("deactivateDate")?.value;
+        const warning = document.getElementById("deactivateDeliveryWarning");
+        if (!dt || !warning) return;
+
+        fetch(`/Customer/CheckDeliveryOnDate?customerId=${custId}&date=${dt}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.hasDelivery) warning.classList.remove("d-none");
+                else warning.classList.add("d-none");
+            })
+            .catch(() => warning.classList.add("d-none"));
+    }
+
+    function openReactivateModal() {
+        const modal = new coreui.Modal(document.getElementById("reactivateModal"));
+        modal.show();
+    }
+
+    function openRequestVacationModal() {
+        const modal = new coreui.Modal(document.getElementById("requestVacationModal"));
+        modal.show();
+    }
+
+    function openRejectVacationModal(vacationId) {
+        document.getElementById("rejectVacationId").value = vacationId;
+        const modal = new coreui.Modal(document.getElementById("rejectVacationModal"));
+        modal.show();
+    }
+
+    function openResumeEarlyModal(vacationId, start, end) {
+        document.getElementById("resumeVacationId").value = vacationId;
+        const resumeInput = document.getElementById("resumeEarlyDate");
+        if (resumeInput) {
+            resumeInput.min = start;
+            resumeInput.max = end;
+        }
+        const modal = new coreui.Modal(document.getElementById("resumeEarlyModal"));
+        modal.show();
+    }
+</script>
+}

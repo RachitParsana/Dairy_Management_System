@@ -87,15 +87,23 @@ namespace Dairy_Management_System
             builder.Services.AddSingleton<ISqlConnectionFactory, SqlConnectionFactory>();
 
             // Register SQL Server ADO.NET Authentication Repository
-            builder.Services.AddScoped<IUserAuthRepository, UserAuthRepository>();
+            builder.Services.AddScoped<IUserAuthRepository>(sp => new UserAuthRepository(
+                sp.GetRequiredService<ISqlConnectionFactory>(),
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<UserAuthRepository>>()));
 
             // Register Authentication Service
             builder.Services.AddScoped<IUserAuthService, UserAuthService>();
 
             // Register Customer Management ADO.NET Repositories
-            builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
-            builder.Services.AddScoped<ICustomerSubscriptionRepository, CustomerSubscriptionRepository>();
-            builder.Services.AddScoped<ICustomerVacationRepository, CustomerVacationRepository>();
+            builder.Services.AddScoped<ICustomerRepository>(sp => new CustomerRepository(
+                sp.GetRequiredService<ISqlConnectionFactory>(),
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<CustomerRepository>>()));
+            builder.Services.AddScoped<ICustomerSubscriptionRepository>(sp => new CustomerSubscriptionRepository(
+                sp.GetRequiredService<ISqlConnectionFactory>(),
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<CustomerSubscriptionRepository>>()));
+            builder.Services.AddScoped<ICustomerVacationRepository>(sp => new CustomerVacationRepository(
+                sp.GetRequiredService<ISqlConnectionFactory>(),
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<CustomerVacationRepository>>()));
 
             // Register Customer Management Application Services
             builder.Services.AddScoped<ICustomerService, CustomerService>();
