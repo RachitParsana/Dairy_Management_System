@@ -1,0 +1,863 @@
+@model Dairy_Management_System.Models.DailyMilk.DailyMilkRosterViewModel
+@using System.Security.Claims
+@using Dairy_Management_System.Models.DailyMilk
+@{
+    Layout = "_LayoutDeliveryBoy";
+    ViewData["Title"] = "Daily Milk Entry";
+    ViewData["ActiveMenu"] = "DailyMilkEntry";
+
+    var isLocked = Model.IsSubmitted;
+}
+
+@Html.AntiForgeryToken()
+
+<div class="daily-entry-container pb-5">
+    @if (ViewData["SubscriptionLoadError"] != null)
+    {
+        <div class="alert alert-danger d-flex align-items-center mb-3 shadow-sm" role="alert">
+            <i class="cil-warning fs-4 me-3 flex-shrink-0"></i>
+            <div>
+                <h6 class="alert-heading fw-bold mb-1">Subscription Data Unavailable</h6>
+                <p class="mb-0 small">@ViewData["SubscriptionLoadError"]</p>
+            </div>
+        </div>
+    }
+
+    <!-- Top Operational Bar -->
+    <div class="card border-0 bg-white shadow-sm mb-3">
+        <div class="card-body p-3 p-md-4">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle p-2 text-white bg-primary d-flex align-items-center justify-content-center shadow-sm" style="width: 48px; height: 48px;">
+                        <i class="cil-drop fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <h5 class="mb-0 fw-bold text-dark">Daily Distribution Runsheet</h5>
+                            @if (Model.IsSubmitted)
+                            {
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                    <i class="cil-lock-locked me-1"></i> Finalized &amp; Submitted
+                                </span>
+                            }
+                            else if (Model.BatchStatus == "Draft")
+                            {
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">
+                                    <i class="cil-save me-1"></i> Draft Saved
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-info-subtle text-primary border border-info-subtle px-2 py-1">
+                                    <i class="cil-notes me-1"></i> New Runsheet
+                                </span>
+                            }
+                        </div>
+                        <div class="text-muted small mt-1">
+                            Partner: <strong>@Model.DeliveryBoyName</strong> &bull; Route: <strong>@(string.IsNullOrEmpty(Model.RouteName) ? "Primary Route" : Model.RouteName)</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Date & Shift Filter Form -->
+                <form method="get" asp-controller="DailyMilk" asp-action="Index" class="d-flex flex-wrap align-items-center gap-2" id="filterForm">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light text-muted border-end-0">
+                            <i class="cil-calendar"></i>
+                        </span>
+                        <input type="date" name="entryDate" id="entryDate" class="form-control form-control-sm border-start-0"
+                               value="@Model.EntryDate.ToString("yyyy-MM-dd")" onchange="document.getElementById('filterForm').submit();" />
+                    </div>
+
+                    <div class="btn-group btn-group-sm" role="group" aria-label="Shift Selector">
+                        <input type="radio" class="btn-check" name="shift" id="shiftMorning" value="Morning"
+                               autocomplete="off" @(Model.Shift == "Morning" ? "checked" : "") onchange="document.getElementById('filterForm').submit();" />
+                        <label class="btn @(Model.Shift == "Morning" ? "btn-primary" : "btn-outline-primary")" for="shiftMorning">
+                            <i class="cil-sun me-1"></i> Morning
+                        </label>
+
+                        <input type="radio" class="btn-check" name="shift" id="shiftEvening" value="Evening"
+                               autocomplete="off" @(Model.Shift == "Evening" ? "checked" : "") onchange="document.getElementById('filterForm').submit();" />
+                        <label class="btn @(Model.Shift == "Evening" ? "btn-primary" : "btn-outline-primary")" for="shiftEvening">
+                            <i class="cil-moon me-1"></i> Evening
+                        </label>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    @if (isLocked)
+    {
+        <!-- Locked Batch Notice Banner -->
+        <div class="alert alert-success border-success-subtle shadow-sm d-flex align-items-center gap-3 mb-3" role="alert">
+            <i class="cil-lock-locked fs-3 text-success flex-shrink-0"></i>
+            <div class="flex-grow-1">
+                <strong>ROUTE LOCKED:</strong> This shift runsheet was finalized and submitted on 
+                <strong>@(Model.SubmittedAt.HasValue ? Model.SubmittedAt.Value.ToLocalTime().ToString("MMM dd, yyyy hh:mm tt") : "N/A")</strong>.
+                Entries are locked against field modifications to ensure historical billing and commission integrity.
+                If corrections are required, please contact your Administrator.
+            </div>
+        </div>
+    }
+
+    <!-- Metric Summary Statistics Cards -->
+    <div class="row g-2 g-md-3 mb-3">
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card border-0 bg-white shadow-sm p-3 text-center h-100">
+                <span class="text-muted small text-uppercase fw-semibold">Assigned</span>
+                <h4 class="mb-0 fw-bold text-dark font-tabular mt-1" id="statTotalCustomers">@Model.TotalCustomers</h4>
+                <span class="text-muted extra-small">Route Customers</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card border-0 bg-white shadow-sm p-3 text-center h-100">
+                <span class="text-success small text-uppercase fw-semibold">Completed</span>
+                <h4 class="mb-0 fw-bold text-success font-tabular mt-1" id="statCompleted">@Model.CompletedCount</h4>
+                <span class="text-muted extra-small">Delivered &amp; Confirmed</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card border-0 bg-white shadow-sm p-3 text-center h-100">
+                <span class="text-warning-emphasis small text-uppercase fw-semibold">Pending</span>
+                <h4 class="mb-0 fw-bold text-warning-emphasis font-tabular mt-1" id="statPending">@Model.PendingCount</h4>
+                <span class="text-muted extra-small">To Be Delivered</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card border-0 bg-white shadow-sm p-3 text-center h-100">
+                <span class="text-danger small text-uppercase fw-semibold">Not Delivered</span>
+                <h4 class="mb-0 fw-bold text-danger font-tabular mt-1" id="statNotDelivered">@Model.NotDeliveredCount</h4>
+                <span class="text-muted extra-small">Absent / Refused</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card border-0 bg-white shadow-sm p-3 text-center h-100">
+                <span class="text-info small text-uppercase fw-semibold">Vacation</span>
+                <h4 class="mb-0 fw-bold text-info font-tabular mt-1" id="statVacation">@Model.VacationCount</h4>
+                <span class="text-muted extra-small">Approved Leave</span>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card border-0 bg-white shadow-sm p-3 text-center h-100">
+                <span class="text-primary small text-uppercase fw-semibold">Total Litres</span>
+                <h4 class="mb-0 fw-bold text-primary font-tabular mt-1">
+                    <span id="statTotalLitres">@Model.TotalLiquidLitres.ToString("F2")</span> <span class="fs-6 fw-normal">L</span>
+                </h4>
+                <span class="text-muted extra-small font-tabular">₹ <span id="statTotalAmount">@Model.TotalAmount.ToString("F2")</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Controls -->
+    <div class="card border-0 bg-white shadow-sm mb-3">
+        <div class="card-body p-2 p-md-3">
+            <div class="row g-2 align-items-center">
+                <div class="col-12 col-md-6 col-lg-5">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light text-muted border-end-0">
+                            <i class="cil-search"></i>
+                        </span>
+                        <input type="text" id="customerSearchInput" class="form-control form-control-sm border-start-0"
+                               placeholder="Search customer by name, code, phone, address..." autocomplete="off" />
+                        <button class="btn btn-outline-secondary btn-sm" type="button" id="clearSearchBtn" title="Clear search">
+                            <i class="cil-x"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-lg-7">
+                    <div class="d-flex flex-wrap align-items-center gap-1 justify-content-md-end" id="statusFilterButtons">
+                        <button type="button" class="btn btn-sm btn-primary active filter-pill" data-filter="all">
+                            All (<span class="filter-count">@Model.TotalCustomers</span>)
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-warning filter-pill" data-filter="Pending">
+                            Pending (<span class="filter-count">@Model.PendingCount</span>)
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-success filter-pill" data-filter="Completed">
+                            Completed (<span class="filter-count">@Model.CompletedCount</span>)
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger filter-pill" data-filter="Not Delivered">
+                            Not Delivered (<span class="filter-count">@Model.NotDeliveredCount</span>)
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-info filter-pill" data-filter="Vacation">
+                            Vacation (<span class="filter-count">@Model.VacationCount</span>)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Continuous Customer Delivery Rows -->
+    <div id="customerRosterContainer" class="d-flex flex-column gap-3">
+        @if (Model.Customers == null || Model.Customers.Count == 0)
+        {
+            <div class="card border-0 bg-white shadow-sm p-5 text-center my-4">
+                <div class="text-muted mb-3">
+                    <i class="cil-people fs-1 text-secondary opacity-50"></i>
+                </div>
+                <h5 class="fw-bold text-dark">No Assigned Customers Found</h5>
+                <p class="text-muted small mb-0">
+                    There are no active customers scheduled or assigned to route 
+                    <strong>@(string.IsNullOrEmpty(Model.RouteName) ? "Primary Route" : Model.RouteName)</strong>
+                    for <strong>@Model.EntryDate.ToString("dd-MMM-yyyy")</strong> (@Model.Shift shift).
+                </p>
+            </div>
+        }
+        else
+        {
+            int index = 0;
+            foreach (var cust in Model.Customers)
+            {
+                index++;
+                var isVacation = cust.IsOnApprovedVacation;
+                var currentStatus = cust.Status ?? "Pending";
+                var rowClass = isVacation ? "border-info-subtle bg-light-subtle opacity-75" :
+                               currentStatus == "Completed" ? "border-success-subtle" :
+                               currentStatus == "Not Delivered" ? "border-danger-subtle" : "border-warning-subtle";
+
+                <div class="card border @rowClass shadow-sm customer-card"
+                     data-customer-id="@cust.CustomerId"
+                     data-status="@(isVacation ? "Vacation" : currentStatus)"
+                     data-is-vacation="@(isVacation ? "true" : "false")"
+                     data-search-text="@(cust.CustomerName.ToLower()) @(cust.CustomerCode.ToLower()) @(cust.Phone) @(cust.Address.ToLower()) @(cust.Area?.ToLower() ?? "")">
+                    
+                    <div class="card-body p-3 p-md-4">
+                        <!-- Top Row: Customer Identity, Badges, Sequence -->
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-secondary rounded-pill px-2 py-1 font-tabular">
+                                    #@(cust.DeliverySequence > 0 ? cust.DeliverySequence : index)
+                                </span>
+                                <div>
+                                    <h6 class="mb-0 fw-bold text-dark d-flex align-items-center gap-2 flex-wrap">
+                                        <span>@cust.CustomerName</span>
+                                        @if (!string.IsNullOrWhiteSpace(cust.CustomerNameGujarati))
+                                        {
+                                            <span class="text-muted small fw-normal">(@cust.CustomerNameGujarati)</span>
+                                        }
+                                        <span class="badge bg-light text-secondary border font-tabular small">
+                                            @cust.CustomerCode
+                                        </span>
+                                    </h6>
+                                    <div class="text-muted extra-small mt-1">
+                                        <i class="cil-phone me-1"></i>@(string.IsNullOrEmpty(cust.Phone) ? "No Phone" : cust.Phone)
+                                        @if (!string.IsNullOrWhiteSpace(cust.Area))
+                                        {
+                                            <span class="mx-1">&bull;</span>
+                                            <i class="cil-location-pin me-1"></i>@cust.Area
+                                        }
+                                        <span class="mx-1">&bull;</span>
+                                        <span>@cust.Address</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Badges Section: Vacation / Schedule / Unscheduled / Correction -->
+                            <div class="d-flex align-items-center gap-1 flex-wrap">
+                                @if (isVacation)
+                                {
+                                    <span class="badge bg-info text-white px-2 py-1 shadow-sm" title="@cust.VacationReason">
+                                        <i class="cil-calendar me-1"></i> Approved Vacation
+                                    </span>
+                                }
+                                else if (cust.HasPendingVacation)
+                                {
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1"
+                                          title="Customer has requested vacation. Deliver normally unless approved by Admin.">
+                                        <i class="cil-warning me-1"></i> Vacation Requested
+                                    </span>
+                                }
+
+                                @if (cust.IsUnscheduledDelivery)
+                                {
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+                                        <i class="cil-check me-1"></i> Admin Authorized Unscheduled
+                                    </span>
+                                }
+                                else if (!cust.IsScheduledToday)
+                                {
+                                    <span class="badge bg-light text-secondary border px-2 py-1">
+                                        <i class="cil-ban me-1"></i> Off-Schedule Today
+                                    </span>
+                                }
+
+                                @if (cust.IsCorrected)
+                                {
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1" title="Entry was corrected by Administrator">
+                                        <i class="cil-pencil me-1"></i> Corrected
+                                    </span>
+                                }
+                            </div>
+                        </div>
+
+                        @if (isVacation)
+                        {
+                            <!-- Approved Vacation Notice Overlay -->
+                            <div class="alert alert-info border-info-subtle py-2 px-3 mb-3 d-flex align-items-center gap-2" role="alert">
+                                <i class="cil-info text-primary fs-5"></i>
+                                <div class="small">
+                                    <strong>VACATION IN EFFECT:</strong> @(string.IsNullOrEmpty(cust.VacationWindowText) ? "On Approved Vacation" : cust.VacationWindowText)
+                                    @if (!string.IsNullOrWhiteSpace(cust.VacationReason))
+                                    {
+                                        <span class="text-muted">(@cust.VacationReason)</span>
+                                    }
+                                    <span class="d-block text-secondary extra-small mt-1">Delivery controls are disabled. No milk charges or delivery boy commission will be calculated for this customer.</span>
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Category-Wise Quantity and Rate Entry Table -->
+                        <div class="table-responsive mb-3">
+                            <table class="table table-sm table-borderless align-middle mb-0">
+                                <thead class="table-light text-muted extra-small text-uppercase">
+                                    <tr>
+                                        <th style="min-width: 140px;">Category</th>
+                                        <th style="min-width: 110px;" class="text-end">Scheduled Qty</th>
+                                        <th style="min-width: 130px;" class="text-center">Delivered Qty</th>
+                                        <th style="min-width: 110px;" class="text-end">Unit Price</th>
+                                        <th style="min-width: 110px;" class="text-end">Line Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (cust.Categories != null && cust.Categories.Count > 0)
+                                    {
+                                        foreach (var cat in cust.Categories)
+                                        {
+                                            var qtyToDisplay = cust.IsExistingEntry ? cat.DeliveredQuantity : cat.DefaultQuantity;
+                                            if (isVacation) qtyToDisplay = 0.000m;
+
+                                            <tr class="category-row" data-category-id="@cat.CategoryId"
+                                                data-unit-price="@cat.UnitPrice.ToString("F2")"
+                                                data-litre-equiv="@cat.LitreEquivalent.ToString("F3")"
+                                                data-billing-equiv="@cat.BillingUnitEquivalent.ToString("F3")">
+                                                
+                                                <td>
+                                                    <span class="fw-semibold text-dark">@cat.CategoryName</span>
+                                                    <div class="extra-small text-muted">@cat.ProductType &bull; @cat.UnitOfMeasure</div>
+                                                </td>
+
+                                                <td class="text-end font-tabular text-muted">
+                                                    @cat.DefaultQuantity.ToString("F2") @cat.UnitOfMeasure
+                                                </td>
+
+                                                <td class="text-center">
+                                                    <div class="input-group input-group-sm justify-content-center" style="max-width: 140px; margin: 0 auto;">
+                                                        <input type="number" step="0.5" min="0" max="1000"
+                                                               class="form-control form-control-sm text-center font-tabular fw-bold quantity-input"
+                                                               value="@qtyToDisplay.ToString("F2")"
+                                                               @(isLocked || isVacation ? "disabled" : "")
+                                                               data-default-qty="@cat.DefaultQuantity.ToString("F2")" />
+                                                        <span class="input-group-text bg-light text-muted small">@cat.UnitOfMeasure</span>
+                                                    </div>
+                                                </td>
+
+                                                <td class="text-end font-tabular">
+                                                    <span class="text-muted">₹@cat.UnitPrice.ToString("F2")</span>
+                                                    @if (cat.IsCustomPrice)
+                                                    {
+                                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle extra-small ms-1" title="Agreed Custom Price">Custom</span>
+                                                    }
+                                                </td>
+
+                                                <td class="text-end font-tabular fw-bold text-dark line-subtotal">
+                                                    ₹@((qtyToDisplay * cat.UnitPrice * cat.BillingUnitEquivalent).ToString("F2"))
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else if (ViewData["SubscriptionLoadError"] != null)
+                                    {
+                                        <tr>
+                                            <td colspan="5" class="text-center text-danger small py-3">
+                                                <i class="cil-warning me-1"></i> Subscription data unavailable due to retrieval failure. Entry is locked.
+                                            </td>
+                                        </tr>
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted small py-3">
+                                                <i class="cil-info me-1"></i> No active milk subscription configured for this customer in @Model.Shift shift.
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Bottom Controls: Delivery Status Selection & Non-Delivery Reason -->
+                        <div class="row g-2 align-items-center pt-2 border-top">
+                            <div class="col-12 col-md-5">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="form-label mb-0 small text-muted fw-semibold text-nowrap">Delivery Status:</label>
+                                    <select class="form-select form-select-sm status-select fw-semibold @(currentStatus == "Completed" ? "text-success border-success" : currentStatus == "Not Delivered" ? "text-danger border-danger" : "text-warning-emphasis border-warning")"
+                                            @(isLocked || isVacation ? "disabled" : "")>
+                                        <option value="Completed" selected="@(currentStatus == "Completed")">Completed</option>
+                                        <option value="Pending" selected="@(currentStatus == "Pending" || string.IsNullOrEmpty(currentStatus))">Pending</option>
+                                        <option value="Not Delivered" selected="@(currentStatus == "Not Delivered" || isVacation)">Not Delivered</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-md-4 non-delivery-reason-col @(currentStatus == "Not Delivered" && !isVacation ? "" : "d-none")">
+                                <input type="text" class="form-control form-control-sm non-delivery-reason-input"
+                                       placeholder="Reason (e.g. Absent, Door Locked, Refused)"
+                                       value="@cust.NonDeliveryReason"
+                                       maxlength="250"
+                                       @(isLocked || isVacation ? "disabled" : "") />
+                            </div>
+
+                            <div class="col-12 col-md text-md-end ms-auto">
+                                <div class="d-flex align-items-center justify-content-between justify-content-md-end gap-3">
+                                    <span class="extra-small text-muted">
+                                        Liquid: <strong class="customer-liquid-vol font-tabular">@cust.TotalLiquidLitres.ToString("F2")</strong> L
+                                    </span>
+                                    <span class="small fw-bold text-dark font-tabular">
+                                        Charge: ₹<span class="customer-total-amt">@cust.TotalAmount.ToString("F2")</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@if (!isLocked)
+{
+    <!-- Sticky Mobile & Desktop Action Bottom Bar -->
+    <div class="fixed-bottom bg-white border-top shadow-lg py-2 px-3 py-md-3 px-md-4" style="z-index: 1040;">
+        <div class="container-fluid d-flex flex-wrap align-items-center justify-content-between gap-2 max-w-7xl mx-auto">
+            <div class="d-flex align-items-center gap-3">
+                <span class="d-none d-sm-inline text-muted small">
+                    <i class="cil-check-circle text-success me-1"></i><span id="footerCompletedCount">@Model.CompletedCount</span> of @Model.TotalCustomers Delivered
+                </span>
+                <span class="badge bg-light text-dark border font-tabular px-2 py-1">
+                    Total: <strong id="footerTotalLitres">@Model.TotalLiquidLitres.ToString("F2")</strong> L &bull; ₹<strong id="footerTotalAmt">@Model.TotalAmount.ToString("F2")</strong>
+                </span>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <button type="button" class="btn btn-outline-secondary btn-sm px-3" id="btnSaveDraft"
+                        @(ViewData["SubscriptionLoadError"] != null ? "disabled title=\"Submission locked: subscription data failed to load.\"" : "")>
+                    <i class="cil-save me-1"></i> Save Draft
+                </button>
+                <button type="button" class="btn btn-primary btn-sm px-4 fw-semibold shadow-sm" id="btnSubmitFinal"
+                        @(ViewData["SubscriptionLoadError"] != null ? "disabled title=\"Submission locked: subscription data failed to load.\"" : "")>
+                    <i class="cil-check me-1"></i> Submit Shift
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Final Submission Confirmation Modal -->
+<div class="modal fade" id="submitConfirmModal" tabindex="-1" aria-labelledby="submitConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fs-6 fw-bold" id="submitConfirmModalLabel">
+                    <i class="cil-check-circle me-1"></i> Finalize Shift Submission
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="mb-3 text-dark">
+                    You are submitting the <strong>@Model.Shift</strong> runsheet for <strong>@Model.EntryDate.ToString("dd-MMM-yyyy")</strong>.
+                </p>
+
+                <div class="card bg-light border-0 p-3 mb-3">
+                    <div class="d-flex justify-content-between mb-1 small">
+                        <span class="text-muted">Total Customers:</span>
+                        <strong class="font-tabular" id="modalTotalCustomers">@Model.TotalCustomers</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1 small text-success">
+                        <span>Completed Deliveries:</span>
+                        <strong class="font-tabular" id="modalCompleted">@Model.CompletedCount</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1 small text-warning-emphasis">
+                        <span>Pending Entries (Preserved):</span>
+                        <strong class="font-tabular" id="modalPending">@Model.PendingCount</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1 small text-danger">
+                        <span>Not Delivered:</span>
+                        <strong class="font-tabular" id="modalNotDelivered">@Model.NotDeliveredCount</strong>
+                    </div>
+                    <div class="d-flex justify-content-between small text-info">
+                        <span>Approved Vacations:</span>
+                        <strong class="font-tabular" id="modalVacation">@Model.VacationCount</strong>
+                    </div>
+                    <hr class="my-2" />
+                    <div class="d-flex justify-content-between fw-bold text-dark">
+                        <span>Total Confirmed Volume:</span>
+                        <span class="font-tabular"><span id="modalTotalLitres">@Model.TotalLiquidLitres.ToString("F2")</span> L</span>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning border-warning-subtle small mb-0 d-flex align-items-center gap-2">
+                    <i class="cil-warning fs-4 text-warning flex-shrink-0"></i>
+                    <div>
+                        <strong>Lock Warning:</strong> Once submitted, this shift will be locked. Any entries remaining in <em>Pending</em> will be preserved for administrative review.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light p-3">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm px-3" id="btnConfirmSubmit">Confirm &amp; Finalize Shift</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const tokenElement = document.querySelector('input[name="__RequestVerificationToken"]');
+        const csrfToken = tokenElement ? tokenElement.value : '';
+        const entryDate = '@Model.EntryDate.ToString("yyyy-MM-dd")';
+        const shift = '@Model.Shift';
+        const deliveryBoyId = @Model.DeliveryBoyId;
+        const routeId = @Model.RouteId;
+        const isLocked = @(isLocked ? "true" : "false");
+
+        // Customer Search Filter
+        const searchInput = document.getElementById('customerSearchInput');
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+        const cards = document.querySelectorAll('.customer-card');
+
+        let activeStatusFilter = 'all';
+
+        function filterRoster() {
+            const query = (searchInput.value || '').trim().toLowerCase();
+
+            cards.forEach(card => {
+                const searchText = card.getAttribute('data-search-text') || '';
+                const cardStatus = card.getAttribute('data-status') || '';
+                const matchesSearch = !query || searchText.includes(query);
+                const matchesStatus = (activeStatusFilter === 'all') || (cardStatus === activeStatusFilter);
+
+                if (matchesSearch && matchesStatus) {
+                    card.classList.remove('d-none');
+                } else {
+                    card.classList.add('d-none');
+                }
+            });
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('input', filterRoster);
+        }
+
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', function () {
+                searchInput.value = '';
+                filterRoster();
+                searchInput.focus();
+            });
+        }
+
+        // Status Filter Buttons
+        document.querySelectorAll('.filter-pill').forEach(btn => {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active', 'btn-primary'));
+                document.querySelectorAll('.filter-pill').forEach(b => {
+                    const f = b.getAttribute('data-filter');
+                    if (f === 'all') b.className = 'btn btn-sm btn-outline-secondary filter-pill';
+                    else if (f === 'Pending') b.className = 'btn btn-sm btn-outline-warning filter-pill';
+                    else if (f === 'Completed') b.className = 'btn btn-sm btn-outline-success filter-pill';
+                    else if (f === 'Not Delivered') b.className = 'btn btn-sm btn-outline-danger filter-pill';
+                    else if (f === 'Vacation') b.className = 'btn btn-sm btn-outline-info filter-pill';
+                });
+
+                this.classList.add('active', 'btn-primary');
+                activeStatusFilter = this.getAttribute('data-filter');
+                filterRoster();
+            });
+        });
+
+        // Dynamic Calculation Engine
+        function recalculateMetrics() {
+            let totalAssigned = 0;
+            let completed = 0;
+            let pending = 0;
+            let notDelivered = 0;
+            let vacation = 0;
+            let totalLitres = 0;
+            let totalAmount = 0;
+
+            cards.forEach(card => {
+                totalAssigned++;
+                const isVac = card.getAttribute('data-is-vacation') === 'true';
+                const statusSelect = card.querySelector('.status-select');
+                const status = isVac ? 'Vacation' : (statusSelect ? statusSelect.value : 'Pending');
+
+                let custLitres = 0;
+                let custAmount = 0;
+
+                const catRows = card.querySelectorAll('.category-row');
+                catRows.forEach(row => {
+                    const qtyInput = row.querySelector('.quantity-input');
+                    const qty = parseFloat(qtyInput ? qtyInput.value : '0') || 0;
+                    const unitPrice = parseFloat(row.getAttribute('data-unit-price') || '0') || 0;
+                    const litreEquiv = parseFloat(row.getAttribute('data-litre-equiv') || '1') || 1;
+                    const billingEquiv = parseFloat(row.getAttribute('data-billing-equiv') || '1') || 1;
+
+                    const lineSubtotal = qty * unitPrice * billingEquiv;
+                    const lineLitres = qty * litreEquiv;
+
+                    const lineSubtotalEl = row.querySelector('.line-subtotal');
+                    if (lineSubtotalEl) {
+                        lineSubtotalEl.textContent = '₹' + lineSubtotal.toFixed(2);
+                    }
+
+                    if (status === 'Completed') {
+                        custLitres += lineLitres;
+                        custAmount += lineSubtotal;
+                    }
+                });
+
+                const custLiquidVolEl = card.querySelector('.customer-liquid-vol');
+                if (custLiquidVolEl) custLiquidVolEl.textContent = custLitres.toFixed(2);
+
+                const custTotalAmtEl = card.querySelector('.customer-total-amt');
+                if (custTotalAmtEl) custTotalAmtEl.textContent = custAmount.toFixed(2);
+
+                if (isVac) {
+                    vacation++;
+                } else if (status === 'Completed') {
+                    completed++;
+                    totalLitres += custLitres;
+                    totalAmount += custAmount;
+                } else if (status === 'Not Delivered') {
+                    notDelivered++;
+                } else {
+                    pending++;
+                }
+            });
+
+            // Update top stats
+            const statCompleted = document.getElementById('statCompleted');
+            if (statCompleted) statCompleted.textContent = completed;
+
+            const statPending = document.getElementById('statPending');
+            if (statPending) statPending.textContent = pending;
+
+            const statNotDelivered = document.getElementById('statNotDelivered');
+            if (statNotDelivered) statNotDelivered.textContent = notDelivered;
+
+            const statVacation = document.getElementById('statVacation');
+            if (statVacation) statVacation.textContent = vacation;
+
+            const statTotalLitres = document.getElementById('statTotalLitres');
+            if (statTotalLitres) statTotalLitres.textContent = totalLitres.toFixed(2);
+
+            const statTotalAmount = document.getElementById('statTotalAmount');
+            if (statTotalAmount) statTotalAmount.textContent = totalAmount.toFixed(2);
+
+            // Update bottom footer stats
+            const footerCompleted = document.getElementById('footerCompletedCount');
+            if (footerCompleted) footerCompleted.textContent = completed;
+
+            const footerTotalLitres = document.getElementById('footerTotalLitres');
+            if (footerTotalLitres) footerTotalLitres.textContent = totalLitres.toFixed(2);
+
+            const footerTotalAmt = document.getElementById('footerTotalAmt');
+            if (footerTotalAmt) footerTotalAmt.textContent = totalAmount.toFixed(2);
+
+            // Update modal stats
+            const modalCompleted = document.getElementById('modalCompleted');
+            if (modalCompleted) modalCompleted.textContent = completed;
+
+            const modalPending = document.getElementById('modalPending');
+            if (modalPending) modalPending.textContent = pending;
+
+            const modalNotDelivered = document.getElementById('modalNotDelivered');
+            if (modalNotDelivered) modalNotDelivered.textContent = notDelivered;
+
+            const modalVacation = document.getElementById('modalVacation');
+            if (modalVacation) modalVacation.textContent = vacation;
+
+            const modalTotalLitres = document.getElementById('modalTotalLitres');
+            if (modalTotalLitres) modalTotalLitres.textContent = totalLitres.toFixed(2);
+        }
+
+        // Event listeners for inputs
+        cards.forEach(card => {
+            const statusSelect = card.querySelector('.status-select');
+            const reasonCol = card.querySelector('.non-delivery-reason-col');
+
+            if (statusSelect) {
+                statusSelect.addEventListener('change', function () {
+                    const st = this.value;
+                    card.setAttribute('data-status', st);
+
+                    // Update styling classes
+                    card.classList.remove('border-success-subtle', 'border-danger-subtle', 'border-warning-subtle');
+                    this.classList.remove('text-success', 'border-success', 'text-danger', 'border-danger', 'text-warning-emphasis', 'border-warning');
+
+                    if (st === 'Completed') {
+                        card.classList.add('border-success-subtle');
+                        this.classList.add('text-success', 'border-success');
+                        if (reasonCol) reasonCol.classList.add('d-none');
+                    } else if (st === 'Not Delivered') {
+                        card.classList.add('border-danger-subtle');
+                        this.classList.add('text-danger', 'border-danger');
+                        if (reasonCol) reasonCol.classList.remove('d-none');
+                    } else {
+                        card.classList.add('border-warning-subtle');
+                        this.classList.add('text-warning-emphasis', 'border-warning');
+                        if (reasonCol) reasonCol.classList.add('d-none');
+                    }
+
+                    recalculateMetrics();
+                });
+            }
+
+            const qtyInputs = card.querySelectorAll('.quantity-input');
+            qtyInputs.forEach(input => {
+                input.addEventListener('input', recalculateMetrics);
+            });
+        });
+
+        // Collect Payload Helper
+        function buildSubmissionPayload(isFinal) {
+            const customerEntries = [];
+
+            cards.forEach(card => {
+                const customerId = parseInt(card.getAttribute('data-customer-id') || '0');
+                const isVac = card.getAttribute('data-is-vacation') === 'true';
+                const statusSelect = card.querySelector('.status-select');
+                const status = isVac ? 'Not Delivered' : (statusSelect ? statusSelect.value : 'Pending');
+                const reasonInput = card.querySelector('.non-delivery-reason-input');
+                const nonDeliveryReason = isVac ? 'Approved Vacation' : (reasonInput ? reasonInput.value.trim() : null);
+
+                const categoryQuantities = [];
+                const catRows = card.querySelectorAll('.category-row');
+                catRows.forEach(row => {
+                    const categoryId = parseInt(row.getAttribute('data-category-id') || '0');
+                    const qtyInput = row.querySelector('.quantity-input');
+                    const packagingQuantity = isVac ? 0 : (parseFloat(qtyInput ? qtyInput.value : '0') || 0);
+
+                    categoryQuantities.push({
+                        categoryId: categoryId,
+                        packagingQuantity: packagingQuantity
+                    });
+                });
+
+                customerEntries.push({
+                    customerId: customerId,
+                    status: status,
+                    nonDeliveryReason: nonDeliveryReason || null,
+                    isUnscheduledDelivery: false,
+                    categoryQuantities: categoryQuantities
+                });
+            });
+
+            return {
+                entryDate: entryDate,
+                shift: shift,
+                deliveryBoyId: deliveryBoyId,
+                routeId: routeId,
+                isFinalSubmission: isFinal,
+                customerEntries: customerEntries
+            };
+        }
+
+        // Save Draft Handler
+        const btnSaveDraft = document.getElementById('btnSaveDraft');
+        if (btnSaveDraft) {
+            btnSaveDraft.addEventListener('click', async function () {
+                if (btnSaveDraft.disabled) return;
+                btnSaveDraft.disabled = true;
+                btnSaveDraft.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Saving...';
+
+                try {
+                    const payload = buildSubmissionPayload(false);
+                    const response = await fetch('/DailyMilk/SaveDraft', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': csrfToken
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        alert(result.message || 'Draft runsheet saved successfully.');
+                        window.location.reload();
+                    } else {
+                        alert('Failed to save draft: ' + (result.message || 'Unknown error.'));
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('An unexpected error occurred while saving the draft.');
+                } finally {
+                    btnSaveDraft.disabled = false;
+                    btnSaveDraft.innerHTML = '<i class="cil-save me-1"></i> Save Draft';
+                }
+            });
+        }
+
+        // Submit Shift Modal Trigger
+        const btnSubmitFinal = document.getElementById('btnSubmitFinal');
+        const submitConfirmModalEl = document.getElementById('submitConfirmModal');
+        let submitConfirmModal = null;
+        if (submitConfirmModalEl) {
+            submitConfirmModal = new bootstrap.Modal(submitConfirmModalEl);
+        }
+
+        if (btnSubmitFinal && submitConfirmModal) {
+            btnSubmitFinal.addEventListener('click', function () {
+                if (btnSubmitFinal.disabled) return;
+                recalculateMetrics();
+                submitConfirmModal.show();
+            });
+        }
+
+        // Confirm Submit Handler
+        const btnConfirmSubmit = document.getElementById('btnConfirmSubmit');
+        if (btnConfirmSubmit) {
+            btnConfirmSubmit.addEventListener('click', async function () {
+                btnConfirmSubmit.disabled = true;
+                btnConfirmSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Finalizing...';
+
+                try {
+                    const payload = buildSubmissionPayload(true);
+                    const response = await fetch('/DailyMilk/Submit', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': csrfToken
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        submitConfirmModal.hide();
+                        alert('Shift Finalized: ' + (result.message || 'Entries locked and submitted successfully.'));
+                        window.location.reload();
+                    } else {
+                        alert('Submission Failed: ' + (result.message || 'Server rejected submission.'));
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('An unexpected error occurred while submitting the shift.');
+                } finally {
+                    btnConfirmSubmit.disabled = false;
+                    btnConfirmSubmit.innerHTML = 'Confirm &amp; Finalize Shift';
+                }
+            });
+        }
+
+        // Initial metrics calculation on load
+        recalculateMetrics();
+    });
+</script>
+}

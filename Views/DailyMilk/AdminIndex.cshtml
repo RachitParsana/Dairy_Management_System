@@ -1,0 +1,904 @@
+@model Dairy_Management_System.Models.DailyMilk.DailyMilkContinuousScrollResult<Dairy_Management_System.Models.DailyMilk.DailyMilkListItemViewModel>
+@using Dairy_Management_System.Models.DailyMilk
+@{
+    Layout = "_LayoutAdmin";
+    ViewData["Title"] = "Daily Milk Operations & Audited Corrections";
+    ViewData["ActiveMenu"] = "DailyMilkManagement";
+
+    var criteria = (DailyMilkFilterCriteria)(ViewBag.FilterCriteria ?? new DailyMilkFilterCriteria());
+    var summary = (DailyMilkSummaryViewModel)(ViewBag.Summary ?? new DailyMilkSummaryViewModel());
+    var deliveryBoys = (List<Dairy_Management_System.Models.Customer.DeliveryBoyLookupItem>)(ViewBag.DeliveryBoys ?? new List<Dairy_Management_System.Models.Customer.DeliveryBoyLookupItem>());
+    var categories = (List<Dairy_Management_System.Models.DailyMilk.DailyMilkCategoryHeaderModel>)(ViewBag.Categories ?? new List<Dairy_Management_System.Models.DailyMilk.DailyMilkCategoryHeaderModel>());
+}
+
+@Html.AntiForgeryToken()
+
+<div class="admin-daily-milk-container pb-5">
+    <!-- Header & Action Ribbon -->
+    <div class="card border-0 bg-white shadow-sm mb-4">
+        <div class="card-body py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle p-2 text-white bg-success d-flex align-items-center justify-content-center shadow-sm" style="width: 44px; height: 44px;">
+                    <i class="cil-drop fs-4"></i>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <h5 class="mb-0 fw-bold text-dark">Daily Distribution Console &amp; Corrections</h5>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">Audited Operational Hub</span>
+                    </div>
+                    <div class="text-muted small mt-1">
+                        Monitor field delivery logs, review preserved pending items, and perform immutable audited corrections.
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#unscheduledAuthModal">
+                    <i class="cil-plus me-1"></i> Authorize Unscheduled Delivery
+                </button>
+                <a href="~/Customer" class="btn btn-outline-secondary btn-sm">
+                    <i class="cil-people me-1"></i> Customer Directory
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shift Aggregate Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-2">
+            <div class="card-stat p-3 h-100">
+                <span class="stat-label">Total Assigned</span>
+                <div class="stat-value font-tabular">@summary.TotalCustomers</div>
+                <div class="stat-subtitle text-muted small">Route Customers</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-2">
+            <div class="card-stat p-3 h-100">
+                <span class="stat-label text-success">Completed</span>
+                <div class="stat-value font-tabular text-success">@summary.CompletedDeliveries</div>
+                <div class="stat-subtitle text-muted small">@summary.CompletionPercentage.ToString("F1")% Completion Rate</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-2">
+            <div class="card-stat p-3 h-100">
+                <span class="stat-label text-warning-emphasis">Pending (Preserved)</span>
+                <div class="stat-value font-tabular text-warning-emphasis">@summary.PendingDeliveries</div>
+                <div class="stat-subtitle text-muted small">Unresolved route entries</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-2">
+            <div class="card-stat p-3 h-100">
+                <span class="stat-label text-danger">Not Delivered</span>
+                <div class="stat-value font-tabular text-danger">@summary.NotDeliveredCount</div>
+                <div class="stat-subtitle text-muted small">Customer absent or refused</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-2">
+            <div class="card-stat p-3 h-100">
+                <span class="stat-label text-primary">Confirmed Liquid</span>
+                <div class="stat-value font-tabular text-primary">@summary.TotalLiquidLitres.ToString("F2") <span class="fs-6 fw-normal text-muted">L</span></div>
+                <div class="stat-subtitle text-muted small">Eligible for Commission</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-2">
+            <div class="card-stat p-3 h-100">
+                <span class="stat-label">Total Amount</span>
+                <div class="stat-value font-tabular text-dark"><span class="financial-currency">₹</span>@summary.TotalAmount.ToString("F2")</div>
+                <div class="stat-subtitle text-muted small">Gross Daily Billing Total</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Console Bar -->
+    <div class="card border-0 bg-white shadow-sm mb-4">
+        <div class="card-body p-3">
+            <form method="get" asp-controller="DailyMilk" asp-action="AdminIndex" id="adminFilterForm">
+                <div class="row g-2 align-items-end">
+                    <div class="col-12 col-sm-6 col-md-3 col-xl-2">
+                        <label class="form-label small text-muted mb-1" for="filterDate">Delivery Date</label>
+                        <input type="date" class="form-control form-control-sm" id="filterDate" name="EntryDate"
+                               value="@(criteria.EntryDate.HasValue ? criteria.EntryDate.Value.ToString("yyyy-MM-dd") : DateTime.Today.ToString("yyyy-MM-dd"))" />
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-md-2 col-xl-2">
+                        <label class="form-label small text-muted mb-1" for="filterShift">Shift</label>
+                        <select class="form-select form-select-sm" id="filterShift" name="Shift">
+                            <option value="" selected="@(string.IsNullOrEmpty(criteria.Shift))">All Shifts</option>
+                            <option value="Morning" selected="@(criteria.Shift == "Morning")">Morning</option>
+                            <option value="Evening" selected="@(criteria.Shift == "Evening")">Evening</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-md-3 col-xl-2">
+                        <label class="form-label small text-muted mb-1" for="filterDeliveryBoy">Delivery Boy</label>
+                        <select class="form-select form-select-sm" id="filterDeliveryBoy" name="DeliveryBoyId">
+                            <option value="">All Delivery Boys</option>
+                            @foreach (var boy in deliveryBoys)
+                            {
+                                <option value="@boy.DeliveryBoyId" selected="@(criteria.DeliveryBoyId == boy.DeliveryBoyId)">
+                                    @boy.FullName
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-md-2 col-xl-2">
+                        <label class="form-label small text-muted mb-1" for="filterStatus">Status</label>
+                        <select class="form-select form-select-sm" id="filterStatus" name="Status">
+                            <option value="" selected="@(string.IsNullOrEmpty(criteria.Status))">All Statuses</option>
+                            <option value="Completed" selected="@(criteria.Status == "Completed")">Completed</option>
+                            <option value="Pending" selected="@(criteria.Status == "Pending")">Pending</option>
+                            <option value="Not Delivered" selected="@(criteria.Status == "Not Delivered")">Not Delivered</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-md-4 col-xl-3">
+                        <label class="form-label small text-muted mb-1" for="filterSearch">Search Customer</label>
+                        <input type="text" class="form-control form-control-sm" id="filterSearch" name="SearchTerm"
+                               placeholder="Customer Name, Code, Phone..." value="@criteria.SearchTerm" />
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-md-auto ms-auto d-flex gap-2">
+                        <button type="submit" class="btn btn-success btn-sm px-3">
+                            <i class="cil-filter me-1"></i> Apply
+                        </button>
+                        <a href="~/DailyMilk/AdminIndex" class="btn btn-outline-secondary btn-sm" title="Reset Filters">
+                            <i class="cil-reload"></i>
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Continuous Deliveries Table -->
+    <div class="card-dms mb-4">
+        <div class="card-header bg-white d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <i class="cil-list text-success"></i>
+                <span class="fw-bold text-dark">Continuous Delivery Stream</span>
+                <span class="badge bg-light text-secondary border font-tabular ms-2" id="streamBadgeCount">
+                    Showing @Model.Items.Count items
+                </span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted extra-small">Composite Cursor Lexicographic Pagination</span>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-dms table-hover align-middle mb-0" id="adminDeliveryTable">
+                <thead>
+                    <tr>
+                        <th style="width: 100px;">Delivery ID</th>
+                        <th style="min-width: 180px;">Customer</th>
+                        <th style="min-width: 110px;">Sequence</th>
+                        <th style="min-width: 130px;">Date &amp; Shift</th>
+                        <th style="min-width: 130px;" class="text-center">Status</th>
+                        <th style="min-width: 160px;">Category Breakdown</th>
+                        <th style="min-width: 110px;" class="text-end">Liquid Volume</th>
+                        <th style="min-width: 110px;" class="text-end">Total Amount</th>
+                        <th style="min-width: 130px;" class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="deliveryTableBody">
+                    @if (Model.Items == null || Model.Items.Count == 0)
+                    {
+                        <tr id="emptyTableNotice">
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="cil-inbox fs-2 text-secondary opacity-50 d-block mb-2"></i>
+                                <h6 class="fw-bold text-dark mb-1">No Delivery Entries Found</h6>
+                                <p class="small text-muted mb-0">Try expanding your filter date, shift, or delivery boy criteria.</p>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model.Items)
+                        {
+                            <tr class="delivery-row" id="row-delivery-@item.DeliveryId" data-delivery-id="@item.DeliveryId">
+                                <td class="font-tabular text-muted small">
+                                    #@item.DeliveryId
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-dark">@item.CustomerName</div>
+                                    <div class="text-muted extra-small font-tabular">
+                                        @item.CustomerCode &bull; @item.Phone
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(item.Area))
+                                    {
+                                        <div class="extra-small text-muted">@item.Area</div>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary rounded-pill px-2 py-1 font-tabular">
+                                        #@item.DeliverySequence
+                                    </span>
+                                    <div class="extra-small text-muted font-tabular">Cust #@item.CustomerId</div>
+                                </td>
+                                <td>
+                                    <div class="font-tabular small fw-semibold text-dark">
+                                        @(item.DeliveryId.HasValue ? criteria.EntryDate?.ToString("dd-MMM-yyyy") : DateTime.Today.ToString("dd-MMM-yyyy"))
+                                    </div>
+                                    <span class="badge @(criteria.Shift == "Evening" ? "bg-dark text-white" : "bg-primary-subtle text-primary border border-primary-subtle") extra-small">
+                                        @(criteria.Shift ?? "Morning")
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    @if (item.Status == "Completed")
+                                    {
+                                        <span class="badge-status badge-status-completed">Completed</span>
+                                    }
+                                    else if (item.Status == "Not Delivered")
+                                    {
+                                        <span class="badge-status badge-status-notdelivered">Not Delivered</span>
+                                        @if (!string.IsNullOrWhiteSpace(item.NonDeliveryReason))
+                                        {
+                                            <div class="extra-small text-muted mt-1" title="@item.NonDeliveryReason">
+                                                @item.NonDeliveryReason
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-status badge-status-pending">Pending</span>
+                                    }
+
+                                    @if (item.IsCorrected)
+                                    {
+                                        <span class="badge bg-secondary text-white extra-small d-block mt-1" title="Audited correction on record">
+                                            <i class="cil-pencil"></i> Corrected
+                                        </span>
+                                    }
+                                    @if (item.IsUnscheduledDelivery)
+                                    {
+                                        <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle extra-small d-block mt-1">
+                                            Unscheduled
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.Categories != null && item.Categories.Count > 0)
+                                    {
+                                        foreach (var cat in item.Categories)
+                                        {
+                                            <div class="extra-small font-tabular">
+                                                <span class="fw-semibold">@cat.CategoryName:</span>
+                                                <span>@cat.DeliveredQuantity.ToString("F2") @cat.UnitOfMeasure</span>
+                                                <span class="text-muted">(@@₹@cat.UnitPrice.ToString("F2"))</span>
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted extra-small">No category lines</span>
+                                    }
+                                </td>
+                                <td class="text-end font-tabular fw-semibold text-primary">
+                                    @item.TotalLiquidLitres.ToString("F2") L
+                                </td>
+                                <td class="text-end font-tabular fw-bold text-dark">
+                                    ₹@item.TotalAmount.ToString("F2")
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-inspect"
+                                                data-delivery-id="@item.DeliveryId" title="Inspect Delivery &amp; Audit Trail">
+                                            <i class="cil-magnifying-glass"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-success btn-sm btn-correct"
+                                                data-delivery-id="@item.DeliveryId" title="Apply Administrative Correction">
+                                            <i class="cil-pencil"></i> Correct
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Continuous Scroll Load More Footer -->
+        <div class="card-footer bg-white border-top py-3 text-center" id="streamFooter">
+            @if (Model.HasMore)
+            {
+                <button type="button" class="btn btn-outline-success btn-sm px-4 font-tabular" id="btnLoadMore"
+                        data-next-date="@(Model.NextCursorEntryDate.HasValue ? Model.NextCursorEntryDate.Value.ToString("yyyy-MM-dd") : "")"
+                        data-next-shift="@Model.NextCursorShift"
+                        data-next-id="@Model.NextCursorDeliveryId">
+                    <i class="cil-chevron-bottom me-1"></i> Load Next Chunk
+                </button>
+            }
+            else
+            {
+                <span class="text-muted small">
+                    <i class="cil-check me-1 text-success"></i> End of delivery records for selected criteria.
+                </span>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- ==================================================================================== -->
+<!-- Modal: Detailed Delivery Inspection & Immutable Audit Trail -->
+<!-- ==================================================================================== -->
+<div class="modal fade" id="deliveryInspectionModal" tabindex="-1" aria-labelledby="deliveryInspectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title fs-6 fw-bold" id="deliveryInspectionModalLabel">
+                    <i class="cil-magnifying-glass me-1"></i> Delivery Inspection &amp; Audit Trail
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4" id="inspectionModalContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">Loading details...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light p-3">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================================================================================== -->
+<!-- Modal: Administrative Delivery Correction -->
+<!-- ==================================================================================== -->
+<div class="modal fade" id="deliveryCorrectionModal" tabindex="-1" aria-labelledby="deliveryCorrectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fs-6 fw-bold" id="deliveryCorrectionModalLabel">
+                    <i class="cil-pencil me-1"></i> Admin Delivery Correction
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="correctDeliveryId" />
+
+                <!-- Notice Banner on Immutability & Published Bill Lock -->
+                <div class="alert alert-info border-info-subtle small mb-3">
+                    <strong>Audited Modification:</strong> Every administrative correction records an immutable diff in 
+                    <code>dbo.DailyMilkDeliveryCorrections</code>. If the month's bill is already published, direct modifications are blocked.
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-muted" for="correctNewStatus">New Delivery Status</label>
+                    <select class="form-select form-select-sm fw-semibold" id="correctNewStatus">
+                        <option value="Completed">Completed</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Not Delivered">Not Delivered</option>
+                    </select>
+                </div>
+
+                <div class="mb-3 d-none" id="correctReasonCol">
+                    <label class="form-label small fw-semibold text-muted" for="correctNonDeliveryReason">Non-Delivery Reason</label>
+                    <input type="text" class="form-control form-control-sm" id="correctNonDeliveryReason"
+                           placeholder="e.g. Customer Absent, Door Locked, Order Cancelled" maxlength="250" />
+                </div>
+
+                <!-- Category Quantities Container for Correction -->
+                <div class="mb-3" id="correctCategoriesContainer">
+                    <label class="form-label small fw-semibold text-muted">Category Packaging Quantities</label>
+                    <div id="correctCategoryInputsList" class="d-flex flex-column gap-2">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-muted" for="correctJustification">
+                        Correction Justification <span class="text-danger">*</span> (Min 5 characters)
+                    </label>
+                    <textarea class="form-control form-control-sm" id="correctJustification" rows="3"
+                              placeholder="Provide mandatory business reason for correction (e.g. Delivery boy mistakenly recorded 1 pouch instead of 2; customer confirmed on phone)..."
+                              maxlength="250"></textarea>
+                    <div class="form-text extra-small">Mandatory audit justification recorded in system ledger.</div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light p-3">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success btn-sm px-4 fw-semibold" id="btnSubmitCorrection">
+                    Commit Audited Correction
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================================================================================== -->
+<!-- Modal: Unscheduled Delivery Authorization -->
+<!-- ==================================================================================== -->
+<div class="modal fade" id="unscheduledAuthModal" tabindex="-1" aria-labelledby="unscheduledAuthModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fs-6 fw-bold" id="unscheduledAuthModalLabel">
+                    <i class="cil-plus me-1"></i> Authorize Unscheduled Delivery
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-primary border-primary-subtle small mb-3">
+                    Allows a customer who is not scheduled for today (e.g. Sunday on weekdays-only plan) to receive delivery.
+                    Both-shift authorizations can be consumed once by Morning and once by Evening.
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-muted" for="authCustomerId">Customer ID <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control form-control-sm font-tabular" id="authCustomerId" placeholder="Enter CustomerId (e.g. 1)" required />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-muted" for="authDate">Entry Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control form-control-sm" id="authDate" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-muted" for="authShift">Authorized Shift <span class="text-danger">*</span></label>
+                    <select class="form-select form-select-sm" id="authShift">
+                        <option value="Morning">Morning</option>
+                        <option value="Evening">Evening</option>
+                        <option value="Both">Both (Morning &amp; Evening independently)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-muted" for="authMaxQty">Max Allowed Quantity (Optional)</label>
+                    <input type="number" step="0.5" class="form-control form-control-sm font-tabular" id="authMaxQty" placeholder="e.g. 2.0" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-muted" for="authReason">Authorization Reason <span class="text-danger">*</span> (Min 5 chars)</label>
+                    <textarea class="form-control form-control-sm" id="authReason" rows="2"
+                              placeholder="e.g. Customer requested extra morning milk delivery for family festival..." maxlength="250" required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer bg-light p-3">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm px-3" id="btnSubmitAuth">Authorize Delivery</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const tokenElement = document.querySelector('input[name="__RequestVerificationToken"]');
+        const csrfToken = tokenElement ? tokenElement.value : '';
+
+        // Modals
+        const inspectionModalEl = document.getElementById('deliveryInspectionModal');
+        const inspectionModal = inspectionModalEl ? new bootstrap.Modal(inspectionModalEl) : null;
+
+        const correctionModalEl = document.getElementById('deliveryCorrectionModal');
+        const correctionModal = correctionModalEl ? new bootstrap.Modal(correctionModalEl) : null;
+
+        const unscheduledModalEl = document.getElementById('unscheduledAuthModal');
+        const unscheduledModal = unscheduledModalEl ? new bootstrap.Modal(unscheduledModalEl) : null;
+
+        // Inspect Button Handler
+        document.addEventListener('click', async function (e) {
+            const inspectBtn = e.target.closest('.btn-inspect');
+            if (inspectBtn) {
+                const deliveryId = inspectBtn.getAttribute('data-delivery-id');
+                if (!deliveryId) return;
+
+                inspectionModal.show();
+                const container = document.getElementById('inspectionModalContent');
+                container.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-success" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+                try {
+                    const response = await fetch('/DailyMilk/GetDeliveryDetails?deliveryId=' + deliveryId);
+                    const res = await response.json();
+
+                    if (!res.success || !res.data) {
+                        container.innerHTML = '<div class="alert alert-danger mb-0">Delivery record not found.</div>';
+                        return;
+                    }
+
+                    const d = res.data;
+                    let categoriesHtml = '';
+                    if (d.items && d.items.length > 0) {
+                        categoriesHtml = `
+                            <div class="table-responsive mb-3">
+                                <table class="table table-sm table-bordered align-middle mb-0">
+                                    <thead class="table-light extra-small">
+                                        <tr>
+                                            <th>Category</th>
+                                            <th class="text-end">Delivered Qty</th>
+                                            <th class="text-end">Unit Price</th>
+                                            <th class="text-end">Liquid Volume</th>
+                                            <th class="text-end">SubTotal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${d.items.map(i => `
+                                            <tr>
+                                                <td class="fw-semibold">${i.categoryName} <span class="text-muted extra-small">(${i.productType})</span></td>
+                                                <td class="text-end font-tabular">${i.deliveredQuantity.toFixed(2)} ${i.unitOfMeasure}</td>
+                                                <td class="text-end font-tabular">₹${i.unitPrice.toFixed(2)}</td>
+                                                <td class="text-end font-tabular">${i.liquidVolumeLitres.toFixed(2)} L</td>
+                                                <td class="text-end font-tabular fw-bold">₹${i.subTotal.toFixed(2)}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                    } else {
+                        categoriesHtml = '<p class="text-muted small">No line items recorded.</p>';
+                    }
+
+                    let correctionsHtml = '';
+                    if (d.corrections && d.corrections.length > 0) {
+                        correctionsHtml = `
+                            <h6 class="fw-bold text-dark mt-4 mb-2"><i class="cil-history me-1"></i> Immutable Correction Audit Ledger</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered align-middle extra-small mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>Auditor</th>
+                                            <th>Status Transition</th>
+                                            <th>Quantity Change</th>
+                                            <th>Amount Change</th>
+                                            <th>Justification</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${d.corrections.map(c => `
+                                            <tr>
+                                                <td class="font-tabular">${new Date(c.correctedAt).toLocaleString()}</td>
+                                                <td>${c.correctedByName || 'Admin #' + c.correctedBy}</td>
+                                                <td><span class="badge bg-light text-dark border">${c.priorStatus}</span> &rarr; <span class="badge bg-success text-white">${c.newStatus}</span></td>
+                                                <td class="font-tabular">${c.priorPackagingQuantity.toFixed(2)} &rarr; ${c.newPackagingQuantity.toFixed(2)}</td>
+                                                <td class="font-tabular font-weight-bold">₹${c.priorTotalAmount.toFixed(2)} &rarr; ₹${c.newTotalAmount.toFixed(2)}</td>
+                                                <td class="text-break">${c.reason}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                    } else {
+                        correctionsHtml = '<p class="text-muted extra-small mt-3">No administrative corrections logged for this entry.</p>';
+                    }
+
+                    container.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold text-dark mb-0">Delivery #${d.deliveryId} &bull; ${d.entryDate} (${d.shift})</h6>
+                            <span class="badge ${d.status === 'Completed' ? 'bg-success' : d.status === 'Not Delivered' ? 'bg-danger' : 'bg-warning'} px-2 py-1">${d.status}</span>
+                        </div>
+
+                        <div class="row g-2 mb-3 small">
+                            <div class="col-sm-6">
+                                <span class="text-muted">Customer ID:</span> <strong>#${d.customerId}</strong>
+                            </div>
+                            <div class="col-sm-6">
+                                <span class="text-muted">Delivery Boy ID:</span> <strong>#${d.deliveryBoyId}</strong>
+                            </div>
+                            <div class="col-sm-6">
+                                <span class="text-muted">Effective Commission Rate:</span> <strong class="font-tabular">₹${d.commissionRateSnapshot.toFixed(2)} / L</strong>
+                            </div>
+                            <div class="col-sm-6">
+                                <span class="text-muted">Eligible Commission Litres:</span> <strong class="font-tabular">${d.eligibleLitreQuantity.toFixed(2)} L</strong>
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-dark mb-2">Delivered Dairy Categories</h6>
+                        ${categoriesHtml}
+
+                        ${correctionsHtml}
+                    `;
+                } catch (err) {
+                    console.error(err);
+                    container.innerHTML = '<div class="alert alert-danger mb-0">Failed to load delivery details.</div>';
+                }
+            }
+        });
+
+        // Correct Button Handler
+        let currentEditingDelivery = null;
+        document.addEventListener('click', async function (e) {
+            const correctBtn = e.target.closest('.btn-correct');
+            if (correctBtn) {
+                const deliveryId = correctBtn.getAttribute('data-delivery-id');
+                if (!deliveryId) return;
+
+                document.getElementById('correctDeliveryId').value = deliveryId;
+                document.getElementById('correctJustification').value = '';
+
+                try {
+                    const response = await fetch('/DailyMilk/GetDeliveryDetails?deliveryId=' + deliveryId);
+                    const res = await response.json();
+                    if (!res.success || !res.data) {
+                        alert('Could not load delivery data for correction.');
+                        return;
+                    }
+
+                    currentEditingDelivery = res.data;
+                    document.getElementById('correctNewStatus').value = currentEditingDelivery.status || 'Completed';
+
+                    const reasonCol = document.getElementById('correctReasonCol');
+                    if (currentEditingDelivery.status === 'Not Delivered') {
+                        reasonCol.classList.remove('d-none');
+                        document.getElementById('correctNonDeliveryReason').value = currentEditingDelivery.nonDeliveryReason || '';
+                    } else {
+                        reasonCol.classList.add('d-none');
+                        document.getElementById('correctNonDeliveryReason').value = '';
+                    }
+
+                    // Render categories
+                    const catContainer = document.getElementById('correctCategoryInputsList');
+                    catContainer.innerHTML = '';
+
+                    if (currentEditingDelivery.items && currentEditingDelivery.items.length > 0) {
+                        currentEditingDelivery.items.forEach(item => {
+                            const row = document.createElement('div');
+                            row.className = 'd-flex align-items-center justify-content-between p-2 bg-light rounded';
+                            row.innerHTML = `
+                                <div>
+                                    <strong class="small text-dark">${item.categoryName}</strong>
+                                    <div class="extra-small text-muted font-tabular">₹${item.unitPrice.toFixed(2)} / ${item.unitOfMeasure}</div>
+                                </div>
+                                <div class="input-group input-group-sm" style="max-width: 140px;">
+                                    <input type="number" step="0.5" min="0" max="1000"
+                                           class="form-control form-control-sm text-end font-tabular correct-cat-input"
+                                           data-category-id="${item.categoryId}"
+                                           value="${item.deliveredQuantity.toFixed(2)}" />
+                                    <span class="input-group-text extra-small">${item.unitOfMeasure}</span>
+                                </div>
+                            `;
+                            catContainer.appendChild(row);
+                        });
+                    }
+
+                    correctionModal.show();
+                } catch (err) {
+                    console.error(err);
+                    alert('Error loading delivery data.');
+                }
+            }
+        });
+
+        // Status change in correction modal
+        const correctStatusSelect = document.getElementById('correctNewStatus');
+        if (correctStatusSelect) {
+            correctStatusSelect.addEventListener('change', function () {
+                const reasonCol = document.getElementById('correctReasonCol');
+                const catContainer = document.getElementById('correctCategoriesContainer');
+
+                if (this.value === 'Not Delivered') {
+                    reasonCol.classList.remove('d-none');
+                    catContainer.classList.add('d-none');
+                } else if (this.value === 'Completed') {
+                    reasonCol.classList.add('d-none');
+                    catContainer.classList.remove('d-none');
+                } else {
+                    reasonCol.classList.add('d-none');
+                    catContainer.classList.add('d-none');
+                }
+            });
+        }
+
+        // Commit Audited Correction
+        const btnSubmitCorrection = document.getElementById('btnSubmitCorrection');
+        if (btnSubmitCorrection) {
+            btnSubmitCorrection.addEventListener('click', async function () {
+                const deliveryId = parseInt(document.getElementById('correctDeliveryId').value || '0');
+                const newStatus = document.getElementById('correctNewStatus').value;
+                const nonDeliveryReason = document.getElementById('correctNonDeliveryReason').value.trim();
+                const reason = document.getElementById('correctJustification').value.trim();
+
+                if (!reason || reason.length < 5) {
+                    alert('Correction justification is mandatory and must be at least 5 characters long.');
+                    document.getElementById('correctJustification').focus();
+                    return;
+                }
+
+                const catInputs = document.querySelectorAll('.correct-cat-input');
+                const categoryQuantities = [];
+                catInputs.forEach(input => {
+                    const catId = parseInt(input.getAttribute('data-category-id') || '0');
+                    const qty = parseFloat(input.value || '0') || 0;
+                    categoryQuantities.push({ categoryId: catId, packagingQuantity: qty });
+                });
+
+                btnSubmitCorrection.disabled = true;
+                btnSubmitCorrection.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Committing...';
+
+                try {
+                    const payload = {
+                        deliveryId: deliveryId,
+                        newStatus: newStatus,
+                        nonDeliveryReason: newStatus === 'Not Delivered' ? nonDeliveryReason : null,
+                        categoryQuantities: newStatus === 'Completed' ? categoryQuantities : [],
+                        correctionReason: reason
+                    };
+
+                    const response = await fetch('/DailyMilk/CorrectDelivery', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': csrfToken
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const res = await response.json();
+                    if (res.success) {
+                        correctionModal.hide();
+                        alert('Correction Recorded: ' + (res.message || 'Delivery updated and audit log created.'));
+                        window.location.reload();
+                    } else {
+                        alert('Correction Failed: ' + (res.message || 'Server rejected correction.'));
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('An unexpected error occurred while committing correction.');
+                } finally {
+                    btnSubmitCorrection.disabled = false;
+                    btnSubmitCorrection.innerHTML = 'Commit Audited Correction';
+                }
+            });
+        }
+
+        // Authorize Unscheduled Delivery Form
+        const btnSubmitAuth = document.getElementById('btnSubmitAuth');
+        if (btnSubmitAuth) {
+            btnSubmitAuth.addEventListener('click', async function () {
+                const customerId = parseInt(document.getElementById('authCustomerId').value || '0');
+                const entryDate = document.getElementById('authDate').value;
+                const shift = document.getElementById('authShift').value;
+                const maxQty = parseFloat(document.getElementById('authMaxQty').value || '0') || null;
+                const reason = document.getElementById('authReason').value.trim();
+
+                if (!customerId || customerId <= 0) {
+                    alert('Please enter a valid Customer ID.');
+                    return;
+                }
+                if (!entryDate) {
+                    alert('Please select a valid entry date.');
+                    return;
+                }
+                if (!reason || reason.length < 5) {
+                    alert('Authorization reason must be at least 5 characters long.');
+                    return;
+                }
+
+                btnSubmitAuth.disabled = true;
+                btnSubmitAuth.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Granting...';
+
+                try {
+                    const payload = {
+                        customerId: customerId,
+                        entryDate: entryDate,
+                        shift: shift,
+                        maxQuantity: maxQty,
+                        reason: reason
+                    };
+
+                    const response = await fetch('/DailyMilk/AuthorizeUnscheduled', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': csrfToken
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const res = await response.json();
+                    if (res.success) {
+                        unscheduledModal.hide();
+                        alert('Authorization Granted: ' + (res.message || 'Customer is authorized for unscheduled delivery on ' + entryDate));
+                    } else {
+                        alert('Authorization Failed: ' + (res.message || 'Server rejected authorization.'));
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('An unexpected error occurred while granting authorization.');
+                } finally {
+                    btnSubmitAuth.disabled = false;
+                    btnSubmitAuth.innerHTML = 'Authorize Delivery';
+                }
+            });
+        }
+
+        // Continuous Scrolling Load More
+        const btnLoadMore = document.getElementById('btnLoadMore');
+        if (btnLoadMore) {
+            btnLoadMore.addEventListener('click', async function () {
+                const nextDate = btnLoadMore.getAttribute('data-next-date');
+                const nextShift = btnLoadMore.getAttribute('data-next-shift');
+                const nextId = btnLoadMore.getAttribute('data-next-id');
+
+                btnLoadMore.disabled = true;
+                btnLoadMore.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Streaming records...';
+
+                try {
+                    const params = new URLSearchParams(new FormData(document.getElementById('adminFilterForm')));
+                    params.set('CursorEntryDate', nextDate);
+                    params.set('CursorShift', nextShift);
+                    params.set('CursorDeliveryId', nextId);
+                    params.set('FetchLimit', '25');
+
+                    const response = await fetch('/DailyMilk/StreamDeliveries?' + params.toString());
+                    const chunk = await response.json();
+
+                    if (chunk.items && chunk.items.length > 0) {
+                        const tbody = document.getElementById('deliveryTableBody');
+                        chunk.items.forEach(item => {
+                            const tr = document.createElement('tr');
+                            tr.className = 'delivery-row';
+                            tr.id = 'row-delivery-' + item.deliveryId;
+                            tr.innerHTML = `
+                                <td class="font-tabular text-muted small">#${item.deliveryId}</td>
+                                <td>
+                                    <div class="fw-semibold text-dark">${item.customerName}</div>
+                                    <div class="text-muted extra-small font-tabular">${item.customerCode} &bull; ${item.phone}</div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary rounded-pill px-2 py-1 font-tabular">
+                                        #${item.deliverySequence || 0}
+                                    </span>
+                                    <div class="extra-small text-muted font-tabular">Cust #${item.customerId}</div>
+                                </td>
+                                <td>
+                                    <div class="font-tabular small fw-semibold text-dark">${params.get('EntryDate')}</div>
+                                    <span class="badge ${params.get('Shift') === 'Evening' ? 'bg-dark text-white' : 'bg-primary-subtle text-primary border border-primary-subtle'} extra-small">
+                                        ${params.get('Shift') || 'Morning'}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge-status ${item.status === 'Completed' ? 'badge-status-completed' : item.status === 'Not Delivered' ? 'badge-status-notdelivered' : 'badge-status-pending'}">
+                                        ${item.status}
+                                    </span>
+                                    ${item.isCorrected ? '<span class="badge bg-secondary text-white extra-small d-block mt-1">Corrected</span>' : ''}
+                                </td>
+                                <td>
+                                    ${(item.categories || []).map(c => `
+                                        <div class="extra-small font-tabular"><span class="fw-semibold">${c.categoryName}:</span> ${c.deliveredQuantity.toFixed(2)} ${c.unitOfMeasure}</div>
+                                    `).join('')}
+                                </td>
+                                <td class="text-end font-tabular fw-semibold text-primary">${item.totalLiquidLitres.toFixed(2)} L</td>
+                                <td class="text-end font-tabular fw-bold text-dark">₹${item.totalAmount.toFixed(2)}</td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm btn-inspect" data-delivery-id="${item.deliveryId}"><i class="cil-magnifying-glass"></i></button>
+                                        <button type="button" class="btn btn-outline-success btn-sm btn-correct" data-delivery-id="${item.deliveryId}"><i class="cil-pencil"></i> Correct</button>
+                                    </div>
+                                </td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+
+                        // Update cursor or hide button
+                        if (chunk.hasMore && chunk.nextCursorDeliveryId) {
+                            btnLoadMore.setAttribute('data-next-date', chunk.nextCursorEntryDate || '');
+                            btnLoadMore.setAttribute('data-next-shift', chunk.nextCursorShift || '');
+                            btnLoadMore.setAttribute('data-next-id', chunk.nextCursorDeliveryId);
+                            btnLoadMore.disabled = false;
+                            btnLoadMore.innerHTML = '<i class="cil-chevron-bottom me-1"></i> Load Next Chunk';
+                        } else {
+                            btnLoadMore.parentElement.innerHTML = '<span class="text-muted small"><i class="cil-check me-1 text-success"></i> End of delivery records for selected criteria.</span>';
+                        }
+                    } else {
+                        btnLoadMore.parentElement.innerHTML = '<span class="text-muted small">No further records found.</span>';
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Error streaming additional delivery records.');
+                    btnLoadMore.disabled = false;
+                    btnLoadMore.innerHTML = '<i class="cil-chevron-bottom me-1"></i> Load Next Chunk';
+                }
+            });
+        }
+    });
+</script>
+}
