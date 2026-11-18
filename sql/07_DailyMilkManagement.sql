@@ -1578,6 +1578,8 @@ BEGIN
     GRANT SELECT ON [dbo].[DeliveryBoys] TO [db_dms_app];
     GRANT SELECT ON [dbo].[DailyMilkDeliveryCorrections] TO [db_dms_app];
     GRANT SELECT ON [dbo].[MonthlyBills] TO [db_dms_app];
+    GRANT SELECT ON OBJECT::dbo.CustomerSubscriptions TO [db_dms_app];
+    GRANT SELECT ON OBJECT::dbo.CustomerSubscriptionDeliveryDays TO [db_dms_app];
 
     -- Column-level SELECT on Users: non-sensitive identity fields required for audit name lookups
     -- Actively denies PasswordHash, Salt, and full record exposure.
