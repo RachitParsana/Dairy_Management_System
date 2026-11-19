@@ -1,0 +1,354 @@
+@model Dairy_Management_System.Controllers.BillingReportsPageViewModel
+@{
+    Layout = "_LayoutAdmin";
+    ViewData["Title"] = "Monthly Billing & Collections Reports";
+    ViewData["ActiveMenu"] = "Billing";
+
+    var report = Model.Report;
+    var collectionRate = report.TotalInvoiceAmount > 0
+        ? (report.TotalCollections / report.TotalInvoiceAmount * 100)
+        : 0.0m;
+}
+
+<div class="admin-billing-reports-container pb-5">
+    <!-- Header & Action Ribbon -->
+    <div class="card border-0 bg-white shadow-sm mb-4">
+        <div class="card-body py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle p-2 text-white bg-dark d-flex align-items-center justify-content-center shadow-sm" style="width: 44px; height: 44px;">
+                    <i class="cil-chart-line fs-4"></i>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <h5 class="mb-0 fw-bold text-dark">Monthly Billing &amp; Collections Report</h5>
+                        <span class="badge bg-dark text-white font-tabular">@(new DateTime(Model.Year, Model.Month, 1).ToString("MMMM yyyy"))</span>
+                    </div>
+                    <div class="text-muted small mt-1">
+                        Executive aggregate summary, route collection performance, and billing volume analytics.
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <a href="~/Billing" class="btn btn-outline-secondary btn-sm">
+                    <i class="cil-arrow-left me-1"></i> Invoices Directory
+                </a>
+            </div>
+        </div>
+
+        <!-- Sub-Navigation Tabs -->
+        <div class="card-footer bg-light border-top px-4 py-2">
+            <ul class="nav nav-pills card-header-pills small gap-2">
+                <li class="nav-item">
+                    <a class="nav-link py-1 px-3 text-secondary" href="~/Billing">
+                        <i class="cil-list me-1"></i> Invoices Directory
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link py-1 px-3 text-secondary" href="~/Billing/BulkBilling">
+                        <i class="cil-layers me-1"></i> Bulk Generation &amp; Publishing
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link py-1 px-3 text-secondary" href="~/Billing/Payments">
+                        <i class="cil-credit-card me-1"></i> Payments &amp; Advance Credit
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active py-1 px-3" href="~/Billing/Reports">
+                        <i class="cil-chart-line me-1"></i> Reports &amp; Collections
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Period Selection Filter -->
+    <div class="card border-0 bg-white shadow-sm mb-4">
+        <div class="card-body p-3">
+            <form method="get" asp-action="Reports" class="row g-3 align-items-center">
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold text-muted mb-1">Report Month</label>
+                    <select name="month" class="form-select form-select-sm">
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            <option value="@m" selected="@(Model.Month == m ? "selected" : null)">
+                                @(new DateTime(2026, m, 1).ToString("MMMM"))
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold text-muted mb-1">Report Year</label>
+                    <select name="year" class="form-select form-select-sm">
+                        @for (int y = DateTime.Today.Year - 1; y <= DateTime.Today.Year + 1; y++)
+                        {
+                            <option value="@y" selected="@(Model.Year == y ? "selected" : null)">
+                                @y
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-self-end">
+                    <button type="submit" class="btn btn-sm btn-primary w-100">
+                        <i class="cil-reload me-1"></i> Generate Monthly Analytics
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Executive KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card-stat p-3 h-100 bg-white shadow-sm border-0">
+                <span class="stat-label text-muted">Total Net Billed</span>
+                <div class="stat-value font-tabular text-dark fs-3 fw-bold">₹@report.TotalInvoiceAmount.ToString("N2")</div>
+                <div class="stat-subtitle text-muted small">
+                    Gross: ₹@report.TotalBilledAmount.ToString("N2") (Adj: -₹@report.TotalAdjustments.ToString("N2"))
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card-stat p-3 h-100 bg-white shadow-sm border-0">
+                <span class="stat-label text-success">Total Collections</span>
+                <div class="stat-value font-tabular text-success fs-3 fw-bold">₹@report.TotalCollections.ToString("N2")</div>
+                <div class="stat-subtitle text-muted small">
+                    <span class="fw-bold text-success">@collectionRate.ToString("F1")%</span> of Invoiced Dues
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card-stat p-3 h-100 bg-white shadow-sm border-0">
+                <span class="stat-label text-danger">Total Outstanding</span>
+                <div class="stat-value font-tabular text-danger fs-3 fw-bold">₹@report.TotalOutstanding.ToString("N2")</div>
+                <div class="stat-subtitle text-muted small">
+                    Active Accounts Receivable
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card-stat p-3 h-100 bg-white shadow-sm border-0">
+                <span class="stat-label text-primary">Total Liquid Volume</span>
+                <div class="stat-value font-tabular text-primary fs-3 fw-bold">@report.TotalVolumeLitres.ToString("N2") L</div>
+                <div class="stat-subtitle text-muted small">
+                    From @report.TotalBillsCount Monthly Invoices
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart.js Visualization Row -->
+    <div class="row g-4 mb-4">
+        <!-- Chart 1: Financial Settlement Breakdown -->
+        <div class="col-lg-7">
+            <div class="card border-0 bg-white shadow-sm h-100">
+                <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                    <span class="fw-semibold text-dark">
+                        <i class="cil-chart text-success me-1"></i> Collections vs. Outstanding Receivables
+                    </span>
+                    <span class="font-tabular small text-muted">Real-Time Data</span>
+                </div>
+                <div class="card-body p-4">
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="collectionsBarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 2: Invoice Payment Status Distribution -->
+        <div class="col-lg-5">
+            <div class="card border-0 bg-white shadow-sm h-100">
+                <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                    <span class="fw-semibold text-dark">
+                        <i class="cil-pie-chart text-primary me-1"></i> Invoice Status Distribution
+                    </span>
+                    <span class="font-tabular small text-muted">@report.TotalBillsCount Total Bills</span>
+                </div>
+                <div class="card-body p-4">
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="statusDoughnutChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Route Breakdown Table -->
+    <div class="card border-0 bg-white shadow-sm mb-4">
+        <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <i class="cil-truck text-success"></i>
+                <span class="fw-semibold text-dark">Route-Level Financial Breakdown</span>
+                <span class="badge bg-light text-secondary border font-tabular">@report.RouteBreakdowns.Count routes</span>
+            </div>
+            <div class="small text-muted">
+                Aggregation across active distribution corridors
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 font-tabular small">
+                <thead class="table-light text-muted text-uppercase border-bottom">
+                    <tr>
+                        <th class="ps-3">Route Name</th>
+                        <th class="text-center">Customers</th>
+                        <th class="text-end">Total Billed</th>
+                        <th class="text-end">Total Collected</th>
+                        <th class="text-end">Outstanding Due</th>
+                        <th class="text-center pe-3">Collection Efficiency</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (report.RouteBreakdowns == null || report.RouteBreakdowns.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                No route breakdown records available for this billing period.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var route in report.RouteBreakdowns)
+                        {
+                            var routeEfficiency = route.TotalBilledAmount > 0
+                                ? (route.TotalCollectedAmount / route.TotalBilledAmount * 100)
+                                : 0.0m;
+                            <tr>
+                                <td class="ps-3 fw-bold text-dark font-sans">
+                                    @route.RouteName
+                                </td>
+                                <td class="text-center fw-medium">
+                                    @route.TotalCustomers
+                                </td>
+                                <td class="text-end fw-semibold text-dark">
+                                    ₹@route.TotalBilledAmount.ToString("N2")
+                                </td>
+                                <td class="text-end text-success fw-bold">
+                                    ₹@route.TotalCollectedAmount.ToString("N2")
+                                </td>
+                                <td class="text-end fw-bold @(route.TotalOutstandingAmount > 0 ? "text-danger" : "text-success")">
+                                    ₹@route.TotalOutstandingAmount.ToString("N2")
+                                </td>
+                                <td class="text-center pe-3">
+                                    <div class="d-flex align-items-center justify-content-center gap-2">
+                                        <div class="progress flex-grow-1" style="height: 6px; max-width: 100px;">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: @routeEfficiency.ToString("F0")%"></div>
+                                        </div>
+                                        <span class="small fw-bold">@routeEfficiency.ToString("F1")%</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Data from Authoritative Backend Model (Zero hardcoding)
+            const billedAmount = @report.TotalInvoiceAmount;
+            const collectedAmount = @report.TotalCollections;
+            const outstandingAmount = @report.TotalOutstanding;
+
+            const paidBills = @report.PaidBillsCount;
+            const partialBills = @report.PartiallyPaidBillsCount;
+            const unpaidBills = @report.UnpaidBillsCount;
+            const overdueBills = @report.OverdueBillsCount;
+
+            // Chart 1: Bar Chart
+            const ctxBar = document.getElementById('collectionsBarChart').getContext('2d');
+            new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: ['Total Billed (₹)', 'Collections (₹)', 'Outstanding Due (₹)'],
+                    datasets: [{
+                        label: 'Financial Amount (₹)',
+                        data: [billedAmount, collectedAmount, outstandingAmount],
+                        backgroundColor: [
+                            'rgba(16, 185, 129, 0.7)',
+                            'rgba(34, 197, 94, 0.85)',
+                            'rgba(239, 68, 68, 0.85)'
+                        ],
+                        borderColor: [
+                            '#10b981',
+                            '#22c55e',
+                            '#ef4444'
+                        ],
+                        borderWidth: 1.5,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return ' ₹' + Number(context.raw).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (value) {
+                                    return '₹' + value.toLocaleString('en-IN');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Chart 2: Doughnut Chart
+            const ctxDoughnut = document.getElementById('statusDoughnutChart').getContext('2d');
+            new Chart(ctxDoughnut, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Paid', 'Partially Paid', 'Unpaid', 'Overdue'],
+                    datasets: [{
+                        data: [paidBills, partialBills, unpaidBills, overdueBills],
+                        backgroundColor: [
+                            '#22c55e',
+                            '#06b6d4',
+                            '#f59e0b',
+                            '#ef4444'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 15,
+                                font: { size: 12 }
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        });
+    </script>
+}

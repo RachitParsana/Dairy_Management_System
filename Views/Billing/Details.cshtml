@@ -1,0 +1,588 @@
+@model Dairy_Management_System.Models.Billing.MonthlyBill
+@{
+    Layout = "_LayoutAdmin";
+    ViewData["Title"] = $"Invoice Details - {Model.BillNumber}";
+    ViewData["ActiveMenu"] = "Billing";
+
+    var balanceSummary = (Dairy_Management_System.Models.Billing.CustomerBalanceSummaryModel?)ViewBag.BalanceSummary;
+}
+
+<div class="admin-bill-details-container pb-5">
+    <!-- Feedback Alerts -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success border-success-subtle shadow-sm alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
+            <i class="cil-check-circle fs-5 text-success"></i>
+            <div>@TempData["SuccessMessage"]</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger border-danger-subtle shadow-sm alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
+            <i class="cil-warning fs-5 text-danger"></i>
+            <div>@TempData["ErrorMessage"]</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Header & Action Ribbon -->
+    <div class="card border-0 bg-white shadow-sm mb-4">
+        <div class="card-body py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle p-2 text-white bg-success d-flex align-items-center justify-content-center shadow-sm" style="width: 44px; height: 44px;">
+                    <i class="cil-description fs-4"></i>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <h5 class="mb-0 fw-bold text-dark font-tabular">Invoice: @Model.BillNumber</h5>
+                        @if (!Model.IsPublished)
+                        {
+                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">DRAFT MODE</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success-subtle text-success border border-success-subtle">PUBLISHED</span>
+                        }
+                        <span class="badge bg-light text-dark border font-tabular">Version @Model.Version</span>
+                    </div>
+                    <div class="text-muted small mt-1">
+                        Period: @Model.PeriodStartDate.ToString("dd MMM yyyy") &ndash; @Model.PeriodEndDate.ToString("dd MMM yyyy")
+                        &bull; Customer: <strong>@Model.CustomerName</strong> (@Model.CustomerId)
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                @if (!Model.IsPublished)
+                {
+                    <button type="button" class="btn btn-success btn-sm text-white" data-bs-toggle="modal" data-bs-target="#publishBillModal">
+                        <i class="cil-check me-1"></i> Publish Bill
+                    </button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-outline-warning btn-sm text-dark" data-bs-toggle="modal" data-bs-target="#reviseBillModal">
+                        <i class="cil-pencil me-1"></i> Revise Invoice
+                    </button>
+                }
+
+                @if (Model.BalanceAmount > 0 && Model.IsPublished)
+                {
+                    <a href="~/Billing/Payments?selectedCustomerId=@Model.CustomerId" class="btn btn-primary btn-sm">
+                        <i class="cil-credit-card me-1"></i> Record Payment
+                    </a>
+                }
+
+                <a href="~/Billing" class="btn btn-outline-secondary btn-sm">
+                    <i class="cil-arrow-left me-1"></i> Back to Invoices
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Grid: Invoice Statement & Customer Standing -->
+    <div class="row g-4 mb-4">
+        <!-- Left: Physical Statement Breakdown -->
+        <div class="col-lg-8">
+            <div class="card border-0 bg-white shadow-sm h-100">
+                <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                    <span class="fw-semibold text-dark">
+                        <i class="cil-calculator text-success me-1"></i> Authoritative Statement Breakdown
+                    </span>
+                    <span class="font-tabular small text-muted">Created: @Model.CreatedAt.ToString("g")</span>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-4">
+                            <div class="p-3 bg-light rounded text-center">
+                                <div class="text-muted small text-uppercase fw-semibold mb-1">Current Charges</div>
+                                <div class="fs-4 fw-bold font-tabular text-dark">₹@Model.CurrentMonthInvoiceAmount.ToString("N2")</div>
+                                <div class="small text-muted">@Model.TotalLiquidMilkVolumeLitres.ToString("N3") Litres Total</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="p-3 bg-light rounded text-center">
+                                <div class="text-muted small text-uppercase fw-semibold mb-1">Amount Paid</div>
+                                <div class="fs-4 fw-bold font-tabular text-success">₹@Model.PaidAmount.ToString("N2")</div>
+                                <div class="small text-muted">Active Allocated Receipts</div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="p-3 bg-light rounded text-center">
+                                <div class="text-muted small text-uppercase fw-semibold mb-1">Invoice Balance Due</div>
+                                <div class="fs-4 fw-bold font-tabular @(Model.BalanceAmount > 0 ? "text-danger" : "text-success")">
+                                    ₹@Model.BalanceAmount.ToString("N2")
+                                </div>
+                                <div class="small fw-semibold">
+                                    @switch (Model.PaymentStatus)
+                                    {
+                                        case "Paid":
+                                            <span class="text-success">Paid in Full</span>
+                                            break;
+                                        case "Partially Paid":
+                                            <span class="text-info">Partially Paid</span>
+                                            break;
+                                        case "Overdue":
+                                            <span class="text-danger">Overdue</span>
+                                            break;
+                                        default:
+                                            <span class="text-warning-emphasis">Unpaid</span>
+                                            break;
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Statement Ledger Line Items -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle mb-0 font-tabular small">
+                            <tbody>
+                                <tr>
+                                    <td class="text-muted w-50">Gross Milk Consumption Value</td>
+                                    <td class="text-end fw-semibold">₹@Model.CurrentMonthMilkAmount.ToString("N2")</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">
+                                        Approved Adjustments / Reductions
+                                        @if (!string.IsNullOrEmpty(Model.RevisionReason))
+                                        {
+                                            <div class="small text-info mt-1 fst-italic">Note: @Model.RevisionReason</div>
+                                        }
+                                    </td>
+                                    <td class="text-end text-danger fw-semibold">- ₹@Model.Adjustments.ToString("N2")</td>
+                                </tr>
+                                <tr class="table-light">
+                                    <td class="fw-bold text-dark">Current Month Net Invoice Amount</td>
+                                    <td class="text-end fw-bold text-dark fs-6">₹@Model.CurrentMonthInvoiceAmount.ToString("N2")</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">
+                                        Prior Unpaid Invoices Snapshot
+                                        <div class="small text-muted" style="font-size: 0.75rem;">(Informational snapshot at bill creation; not added to current receivable)</div>
+                                    </td>
+                                    <td class="text-end text-muted">₹@Model.PreviousBalanceSnapshot.ToString("N2")</td>
+                                </tr>
+                                <tr class="table-light">
+                                    <td class="fw-semibold text-secondary">Total Printed Statement Amount</td>
+                                    <td class="text-end fw-semibold text-secondary">₹@Model.TotalStatementAmount.ToString("N2")</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Allocated Payments Applied</td>
+                                    <td class="text-end text-success fw-semibold">- ₹@Model.PaidAmount.ToString("N2")</td>
+                                </tr>
+                                <tr class="table-warning border-top border-2">
+                                    <td class="fw-bold text-dark fs-6">NET INVOICE BALANCE OUTSTANDING</td>
+                                    <td class="text-end fw-bold fs-5 @(Model.BalanceAmount > 0 ? "text-danger" : "text-success")">
+                                        ₹@Model.BalanceAmount.ToString("N2")
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Customer Account Profile & Payment Due Info -->
+        <div class="col-lg-4">
+            <!-- Due Date & Publishing Card -->
+            <div class="card border-0 bg-white shadow-sm mb-4">
+                <div class="card-header bg-white py-3 border-bottom fw-semibold text-dark">
+                    <i class="cil-calendar text-primary me-1"></i> Payment Schedule &amp; Due Date
+                </div>
+                <div class="card-body p-4 small">
+                    <div class="mb-3">
+                        <span class="text-muted d-block mb-1">Payment Due Date:</span>
+                        @if (Model.PaymentDueDate.HasValue)
+                        {
+                            <div class="fs-5 fw-bold font-tabular text-dark">
+                                @Model.PaymentDueDate.Value.ToString("dd MMMM yyyy")
+                            </div>
+                            @if (Model.BalanceAmount > 0)
+                            {
+                                var today = DateOnly.FromDateTime(DateTime.Today);
+                                if (today > Model.PaymentDueDate.Value)
+                                {
+                                    <div class="badge bg-danger-subtle text-danger border border-danger-subtle mt-1">
+                                        <i class="cil-warning me-1"></i> Overdue by @((today.DayNumber - Model.PaymentDueDate.Value.DayNumber)) days
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="badge bg-success-subtle text-success border border-success-subtle mt-1">
+                                        Due in @((Model.PaymentDueDate.Value.DayNumber - today.DayNumber)) days
+                                    </div>
+                                }
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-muted fst-italic fs-6">
+                                @(Model.IsPublished ? "No due date set (PaymentDueDate = NULL)" : "Draft mode – No due date assigned.")
+                            </div>
+                        }
+                    </div>
+
+                    <div class="mb-2">
+                        <span class="text-muted d-block mb-1">Published Timestamp:</span>
+                        <span class="font-tabular fw-semibold text-dark">
+                            @(Model.PublishedAt.HasValue ? Model.PublishedAt.Value.ToString("dd MMM yyyy, hh:mm tt") : "Not yet published (Draft)")
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Standing Card -->
+            <div class="card border-0 bg-white shadow-sm">
+                <div class="card-header bg-white py-3 border-bottom fw-semibold text-dark">
+                    <i class="cil-user text-primary me-1"></i> Customer Account Position
+                </div>
+                <div class="card-body p-4 small">
+                    <div class="mb-3">
+                        <div class="fw-bold text-dark fs-6">@Model.CustomerName</div>
+                        <div class="text-muted font-tabular">Customer ID: #@Model.CustomerId &bull; Phone: @Model.CustomerPhone</div>
+                        <div class="text-muted">Route: @(string.IsNullOrEmpty(Model.RouteName) ? "Unassigned" : Model.RouteName)</div>
+                    </div>
+
+                    @if (balanceSummary != null)
+                    {
+                        <div class="border-top pt-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Total Unpaid Dues (All Invoices):</span>
+                                <span class="font-tabular fw-bold text-danger">₹@balanceSummary.TotalOutstandingDues.ToString("N2")</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Available Advance Credit:</span>
+                                <span class="font-tabular fw-bold text-success">₹@balanceSummary.TotalAvailableAdvanceCredit.ToString("N2")</span>
+                            </div>
+                            <div class="d-flex justify-content-between border-top pt-2 mt-2">
+                                <span class="fw-bold text-dark">Net Account Position:</span>
+                                <span class="font-tabular fw-bold @(balanceSummary.NetAccountBalance > 0 ? "text-danger" : "text-success") fs-6">
+                                    ₹@balanceSummary.NetAccountBalance.ToString("N2")
+                                </span>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="mt-4">
+                        <a href="~/Customer/Details/@Model.CustomerId" class="btn btn-outline-secondary btn-sm w-100">
+                            <i class="cil-external-link me-1"></i> View Full Customer Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Itemized Milk Consumption Table -->
+    <div class="card border-0 bg-white shadow-sm mb-4">
+        <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+            <span class="fw-semibold text-dark">
+                <i class="cil-drop text-success me-1"></i> Itemized Category Breakdown &amp; Historical Snapshots
+            </span>
+            <span class="badge bg-light text-secondary border font-tabular">@Model.Items.Count categories</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 font-tabular small">
+                <thead class="table-light text-muted text-uppercase border-bottom">
+                    <tr>
+                        <th class="ps-3">Category</th>
+                        <th class="text-center">Delivered Days</th>
+                        <th class="text-center">Packaging Count</th>
+                        <th class="text-end">Liquid Volume</th>
+                        <th class="text-end">Snapshotted Unit Price</th>
+                        <th class="text-end pe-3">Sub-Total Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Items == null || Model.Items.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                No itemized records available for this invoice.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td class="ps-3 fw-semibold text-dark">
+                                    @item.CategoryName
+                                </td>
+                                <td class="text-center">
+                                    @item.DeliveredDaysCount days
+                                </td>
+                                <td class="text-center">
+                                    @item.QuantityCount units
+                                </td>
+                                <td class="text-end">
+                                    @item.LiquidVolumeLitres.ToString("N3") Litres
+                                </td>
+                                <td class="text-end text-muted">
+                                    ₹@item.UnitPriceSnapshot.ToString("N2")
+                                </td>
+                                <td class="text-end pe-3 fw-bold text-dark">
+                                    ₹@item.SubTotal.ToString("N2")
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Payment Allocations Ledger Table -->
+    <div class="card border-0 bg-white shadow-sm mb-4">
+        <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <i class="cil-credit-card text-primary me-1"></i>
+                <span class="fw-semibold text-dark">Payment Allocation Ledger Events</span>
+                <span class="badge bg-light text-secondary border font-tabular">@Model.AllocationEvents.Count events</span>
+            </div>
+            <div class="small text-muted">
+                Authoritative append-only transaction log on this invoice
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 font-tabular small">
+                <thead class="table-light text-muted text-uppercase border-bottom">
+                    <tr>
+                        <th class="ps-3">Event ID</th>
+                        <th>Receipt #</th>
+                        <th>Event Type</th>
+                        <th>Direction</th>
+                        <th class="text-end">Signed Amount</th>
+                        <th>Reason / Notes</th>
+                        <th>Timestamp</th>
+                        <th class="pe-3">Recorded By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.AllocationEvents == null || Model.AllocationEvents.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">
+                                No payment receipts have been allocated to this invoice yet.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var e in Model.AllocationEvents)
+                        {
+                            <tr>
+                                <td class="ps-3 fw-semibold text-muted">
+                                    #@e.AllocationEventId
+                                </td>
+                                <td class="fw-semibold text-primary">
+                                    @(string.IsNullOrEmpty(e.ReceiptNumber) ? $"Payment #{e.PaymentId}" : e.ReceiptNumber)
+                                </td>
+                                <td>
+                                    @switch (e.EventType)
+                                    {
+                                        case "InitialAllocation":
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle">Initial Allocation</span>
+                                            break;
+                                        case "AdvanceCreditAllocation":
+                                            <span class="badge bg-info-subtle text-info border border-info-subtle">Advance Credit</span>
+                                            break;
+                                        case "ReversalAdjustment":
+                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">LIFO Revision</span>
+                                            break;
+                                        case "VoidReversal":
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Void Reversal</span>
+                                            break;
+                                        default:
+                                            <span class="badge bg-light text-dark border">@e.EventType</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    @if (e.Direction > 0)
+                                    {
+                                        <span class="text-success fw-bold">+Credit (+1)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-danger fw-bold">-Debit (-1)</span>
+                                    }
+                                </td>
+                                <td class="text-end fw-bold @(e.SignedAmount >= 0 ? "text-success" : "text-danger")">
+                                    ₹@e.SignedAmount.ToString("N2")
+                                </td>
+                                <td class="text-muted">
+                                    @e.Reason
+                                </td>
+                                <td class="text-muted">
+                                    @e.PerformedAt.ToString("dd MMM yyyy, hh:mm tt")
+                                </td>
+                                <td class="pe-3 text-muted">
+                                    @(string.IsNullOrEmpty(e.PerformedByUserName) ? $"User #{e.PerformedBy}" : e.PerformedByUserName)
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Audited Revision History Table -->
+    <div class="card border-0 bg-white shadow-sm">
+        <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <i class="cil-history text-warning me-1"></i>
+                <span class="fw-semibold text-dark">Audited Financial Revision History</span>
+                <span class="badge bg-light text-secondary border font-tabular">@Model.Revisions.Count revisions</span>
+            </div>
+            <div class="small text-muted">
+                Immutable record of administrative adjustments &amp; LIFO reversals
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 font-tabular small">
+                <thead class="table-light text-muted text-uppercase border-bottom">
+                    <tr>
+                        <th class="ps-3">Version</th>
+                        <th class="text-end">Prior Invoice</th>
+                        <th class="text-end">Revised Invoice</th>
+                        <th class="text-end">Adjustments</th>
+                        <th class="text-end">Resulting Balance</th>
+                        <th>Revision Reason</th>
+                        <th>Revised At</th>
+                        <th class="pe-3">Admin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Revisions == null || Model.Revisions.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">
+                                No post-publication revisions have been made to this invoice (Version 1).
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var rev in Model.Revisions)
+                        {
+                            <tr>
+                                <td class="ps-3 fw-bold text-dark">
+                                    v@(rev.VersionNumber)
+                                </td>
+                                <td class="text-end text-muted">
+                                    ₹@rev.PriorInvoiceAmount.ToString("N2")
+                                </td>
+                                <td class="text-end fw-semibold text-dark">
+                                    ₹@rev.NewInvoiceAmount.ToString("N2")
+                                </td>
+                                <td class="text-end text-danger fw-semibold">
+                                    ₹@rev.NewAdjustments.ToString("N2")
+                                </td>
+                                <td class="text-end fw-bold @(rev.NewBalanceAmount > 0 ? "text-danger" : "text-success")">
+                                    ₹@rev.NewBalanceAmount.ToString("N2")
+                                </td>
+                                <td class="text-dark">
+                                    @rev.Reason
+                                </td>
+                                <td class="text-muted">
+                                    @rev.RevisedAt.ToString("dd MMM yyyy, hh:mm tt")
+                                </td>
+                                <td class="pe-3 text-muted">
+                                    @(string.IsNullOrEmpty(rev.RevisedByUserName) ? $"Admin #{rev.RevisedBy}" : rev.RevisedByUserName)
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Publish Bill -->
+<div class="modal fade" id="publishBillModal" tabindex="-1" aria-labelledby="publishBillLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-action="PublishBill">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="billId" value="@Model.BillId" />
+                <input type="hidden" name="returnUrl" value="~/Billing/Details/@Model.BillId" />
+                <div class="modal-header bg-light">
+                    <h6 class="modal-title fw-bold" id="publishBillLabel">
+                        <i class="cil-check text-success me-1"></i> Publish Invoice: @Model.BillNumber
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="mb-3">
+                        Publishing transitions this invoice from <strong>Draft</strong> to <strong>Published</strong> mode and snapshots the payment due date based on customer grace days.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-dark">Payment Due Date / Grace Period (Optional)</label>
+                        <div class="input-group">
+                            <input type="number" name="graceDays" class="form-control" placeholder="Leave empty for no due date" min="1" max="90" value="" />
+                            <span class="input-group-text small text-muted">days after @Model.PeriodEndDate.ToString("dd-MMM")</span>
+                        </div>
+                        <div class="form-text small text-muted mt-1">
+                            <i class="cil-info me-1"></i> <strong>Optional Admin Choice:</strong> Enter grace days to snapshot an authoritative due date. If left blank, this invoice will be published without a due date (<code>PaymentDueDate = NULL</code>) and will never be marked Overdue.
+                        </div>
+                    </div>
+                    <div class="alert alert-warning border-warning-subtle small mb-0">
+                        <i class="cil-warning me-1"></i> Published bills are locked from recalculation. Completed deliveries in this billing window will be immutable.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-success text-white">Confirm &amp; Publish</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Revise Bill -->
+<div class="modal fade" id="reviseBillModal" tabindex="-1" aria-labelledby="reviseBillLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-action="ReviseBill">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="BillId" value="@Model.BillId" />
+                <input type="hidden" name="ExpectedVersion" value="@Model.Version" />
+                <div class="modal-header bg-light">
+                    <h6 class="modal-title fw-bold" id="reviseBillLabel">
+                        <i class="cil-pencil text-warning me-1"></i> Revise Invoice: @Model.BillNumber (Version @Model.Version)
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Gross Milk Amount</label>
+                        <input type="text" class="form-control bg-light font-tabular" value="₹@Model.CurrentMonthMilkAmount.ToString("N2")" readonly />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Updated Deductions / Adjustments Amount (₹) <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" min="0" max="1000000" name="Adjustments" class="form-control font-tabular" value="@Model.Adjustments" required />
+                        <div class="form-text small">Target Invoice Amount will become (Gross Milk Amount - Adjustments).</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Revision Justification Reason <span class="text-danger">*</span></label>
+                        <textarea name="Reason" class="form-control" rows="3" minlength="5" maxlength="500" placeholder="Minimum 5 characters justification for financial audit trail..." required></textarea>
+                    </div>
+                    <div class="alert alert-info border-info-subtle small mb-0">
+                        <i class="cil-info me-1"></i> If the revision reduces the invoice amount below the currently paid total, deterministic LIFO reversals will be applied to the latest payment receipts.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-warning text-dark">Submit Audited Revision</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,516 @@
+@model Dairy_Management_System.Controllers.PaymentsPageViewModel
+@{
+    Layout = "_LayoutAdmin";
+    ViewData["Title"] = "Payment Receipts & Advance Credit";
+    ViewData["ActiveMenu"] = "Billing";
+}
+
+<div class="admin-payments-container pb-5">
+    <!-- Feedback Alerts -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success border-success-subtle shadow-sm alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
+            <i class="cil-check-circle fs-5 text-success"></i>
+            <div>@TempData["SuccessMessage"]</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger border-danger-subtle shadow-sm alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
+            <i class="cil-warning fs-5 text-danger"></i>
+            <div>@TempData["ErrorMessage"]</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Header & Action Ribbon -->
+    <div class="card border-0 bg-white shadow-sm mb-4">
+        <div class="card-body py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle p-2 text-white bg-success d-flex align-items-center justify-content-center shadow-sm" style="width: 44px; height: 44px;">
+                    <i class="cil-credit-card fs-4"></i>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <h5 class="mb-0 fw-bold text-dark">Payment Receipts &amp; Advance Credit Ledger</h5>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">Strictly Append-Only</span>
+                    </div>
+                    <div class="text-muted small mt-1">
+                        Record manual settlements targeting ONE selected invoice, manage customer advance credit deposits, and audit void reversals.
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button type="button" class="btn btn-success btn-sm text-white" data-bs-toggle="modal" data-bs-target="#recordPaymentModal">
+                    <i class="cil-plus me-1"></i> Record New Payment
+                </button>
+                <a href="~/Billing" class="btn btn-outline-secondary btn-sm">
+                    <i class="cil-arrow-left me-1"></i> Invoices Directory
+                </a>
+            </div>
+        </div>
+
+        <!-- Sub-Navigation Tabs -->
+        <div class="card-footer bg-light border-top px-4 py-2">
+            <ul class="nav nav-pills card-header-pills small gap-2">
+                <li class="nav-item">
+                    <a class="nav-link py-1 px-3 text-secondary" href="~/Billing">
+                        <i class="cil-list me-1"></i> Invoices Directory
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link py-1 px-3 text-secondary" href="~/Billing/BulkBilling">
+                        <i class="cil-layers me-1"></i> Bulk Generation &amp; Publishing
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active py-1 px-3" href="~/Billing/Payments">
+                        <i class="cil-credit-card me-1"></i> Payments &amp; Advance Credit
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link py-1 px-3 text-secondary" href="~/Billing/Reports">
+                        <i class="cil-chart-line me-1"></i> Reports &amp; Collections
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Active Customer Balance Context Card (if customer selected) -->
+    @if (Model.SelectedCustomerBalance != null)
+    {
+        <div class="card border-0 bg-white shadow-sm mb-4">
+            <div class="card-body p-4">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <span class="text-muted small text-uppercase fw-semibold d-block">Selected Customer Profile</span>
+                        <h5 class="fw-bold text-dark mb-0">@Model.SelectedCustomerBalance.CustomerName</h5>
+                        <div class="text-muted small font-tabular">ID: #@Model.SelectedCustomerBalance.CustomerId &bull; Phone: @Model.SelectedCustomerBalance.CustomerPhone</div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="row g-3 text-center">
+                            <div class="col-4">
+                                <div class="p-2 bg-light rounded">
+                                    <span class="text-muted small d-block">Total Published Dues</span>
+                                    <span class="fs-5 fw-bold font-tabular text-danger">₹@Model.SelectedCustomerBalance.TotalOutstandingDues.ToString("N2")</span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="p-2 bg-light rounded">
+                                    <span class="text-muted small d-block">Available Advance Credit</span>
+                                    <span class="fs-5 fw-bold font-tabular text-success">₹@Model.SelectedCustomerBalance.TotalAvailableAdvanceCredit.ToString("N2")</span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="p-2 bg-light rounded">
+                                    <span class="text-muted small d-block">Net Account Position</span>
+                                    <span class="fs-5 fw-bold font-tabular @(Model.SelectedCustomerBalance.NetAccountBalance > 0 ? "text-danger" : "text-success")">
+                                        ₹@Model.SelectedCustomerBalance.NetAccountBalance.ToString("N2")
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Payment History Filter Form -->
+    <div class="card border-0 bg-white shadow-sm mb-4">
+        <div class="card-body p-3">
+            <form method="get" asp-action="Payments" class="row g-2 align-items-center">
+                <div class="col-md-3">
+                    <label class="form-label small text-muted mb-1">Filter by Customer</label>
+                    <select name="selectedCustomerId" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">All Customers</option>
+                        @foreach (var c in Model.Customers)
+                        {
+                            <option value="@c.CustomerId" selected="@(Model.Criteria.CustomerId == c.CustomerId ? "selected" : null)">
+                                @c.DisplayText
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-muted mb-1">Payment Mode</label>
+                    <select name="PaymentMode" class="form-select form-select-sm">
+                        <option value="">All Modes</option>
+                        <option value="Offline" selected="@(Model.Criteria.PaymentMode == "Offline" ? "selected" : null)">Offline (Cash)</option>
+                        <option value="Online" selected="@(Model.Criteria.PaymentMode == "Online" ? "selected" : null)">Online (Bank/UPI)</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-muted mb-1">Void Status</label>
+                    <select name="IsVoided" class="form-select form-select-sm">
+                        <option value="">All Payments</option>
+                        <option value="false" selected="@(Model.Criteria.IsVoided == false ? "selected" : null)">Active Receipts Only</option>
+                        <option value="true" selected="@(Model.Criteria.IsVoided == true ? "selected" : null)">Voided Receipts Only</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-muted mb-1">Start Date</label>
+                    <input type="date" name="StartDate" class="form-control form-control-sm" value="@(Model.Criteria.StartDate.HasValue ? Model.Criteria.StartDate.Value.ToString("yyyy-MM-dd") : "")" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-muted mb-1">End Date</label>
+                    <input type="date" name="EndDate" class="form-control form-control-sm" value="@(Model.Criteria.EndDate.HasValue ? Model.Criteria.EndDate.Value.ToString("yyyy-MM-dd") : "")" />
+                </div>
+                <div class="col-md-1 d-flex gap-1 align-self-end">
+                    <button type="submit" class="btn btn-sm btn-primary w-100" title="Apply Filter">
+                        <i class="cil-filter"></i>
+                    </button>
+                    <a href="~/Billing/Payments" class="btn btn-sm btn-outline-secondary" title="Reset Filters">
+                        <i class="cil-reload"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Payments Receipts Directory Table -->
+    <div class="card border-0 bg-white shadow-sm">
+        <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <i class="cil-description text-success"></i>
+                <span class="fw-semibold text-dark">Payment Receipts</span>
+                <span class="badge bg-light text-secondary border font-tabular">@Model.TotalCount records</span>
+            </div>
+            <div class="small text-muted">
+                One payment receipt targets ONE invoice; unallocated remainder is held as advance credit
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 font-tabular small">
+                <thead class="table-light text-muted text-uppercase border-bottom">
+                    <tr>
+                        <th class="ps-3">Receipt #</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th>Mode</th>
+                        <th class="text-end">Amount Paid</th>
+                        <th class="text-end">Allocated</th>
+                        <th class="text-end">Advance Credit</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-end pe-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Payments == null || Model.Payments.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <div class="py-3">
+                                    <i class="cil-credit-card fs-1 mb-2 d-block"></i>
+                                    <h6>No Payment Receipts Found</h6>
+                                    <p class="small mb-3">No payment records match the selected filter criteria.</p>
+                                    <button type="button" class="btn btn-sm btn-success text-white" data-bs-toggle="modal" data-bs-target="#recordPaymentModal">
+                                        <i class="cil-plus me-1"></i> Record New Payment
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var p in Model.Payments)
+                        {
+                            <tr class="@(p.IsVoided ? "bg-danger bg-opacity-10" : "")">
+                                <td class="ps-3 fw-bold text-dark">
+                                    @p.ReceiptNumber
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-dark">@p.CustomerName</div>
+                                    <div class="text-muted small">@p.CustomerPhone</div>
+                                </td>
+                                <td class="text-muted">
+                                    @p.PaymentDate.ToString("dd MMM yyyy")
+                                </td>
+                                <td>
+                                    @if (p.PaymentMode == "Online")
+                                    {
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                            <i class="cil-cloud me-1"></i> Online
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                            <i class="cil-wallet me-1"></i> Offline
+                                        </span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(p.ReferenceNumber))
+                                    {
+                                        <span class="d-block text-muted small mt-1">Ref: @p.ReferenceNumber</span>
+                                    }
+                                </td>
+                                <td class="text-end fw-bold text-dark fs-6">
+                                    ₹@p.Amount.ToString("N2")
+                                </td>
+                                <td class="text-end text-success fw-medium">
+                                    ₹@p.AllocatedAmount.ToString("N2")
+                                </td>
+                                <td class="text-end fw-bold @(p.UnallocatedCredit > 0 ? "text-primary" : "text-muted")">
+                                    ₹@p.UnallocatedCredit.ToString("N2")
+                                </td>
+                                <td class="text-center">
+                                    @if (p.IsVoided)
+                                    {
+                                        <span class="badge bg-danger text-white px-2 py-1" title="Voided: @p.VoidReason">
+                                            VOIDED
+                                        </span>
+                                    }
+                                    else if (p.UnallocatedCredit > 0)
+                                    {
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1">
+                                            Credit Available
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                            Fully Allocated
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-end pe-3">
+                                    <div class="btn-group btn-group-sm">
+                                        @if (!p.IsVoided && p.UnallocatedCredit > 0)
+                                        {
+                                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#allocateCreditModal_@p.PaymentId" title="Allocate Advance Credit">
+                                                <i class="cil-share-boxed"></i> Allocate
+                                            </button>
+                                        }
+
+                                        @if (!p.IsVoided)
+                                        {
+                                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#voidPaymentModal_@p.PaymentId" title="Void Payment Receipt">
+                                                <i class="cil-ban"></i> Void
+                                            </button>
+                                        }
+                                    </div>
+
+                                    <!-- Allocate Advance Credit Modal -->
+                                    @if (!p.IsVoided && p.UnallocatedCredit > 0)
+                                    {
+                                        <div class="modal fade text-start font-sans" id="allocateCreditModal_@p.PaymentId" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content border-0 shadow">
+                                                    <form method="post" asp-action="AllocateAdvanceCredit">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="PaymentId" value="@p.PaymentId" />
+                                                        <div class="modal-header bg-light">
+                                                            <h6 class="modal-title fw-bold">
+                                                                <i class="cil-share-boxed text-primary me-1"></i> Allocate Advance Credit: @p.ReceiptNumber
+                                                            </h6>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body p-4 small">
+                                                            <div class="mb-3">
+                                                                <label class="form-label text-muted">Customer</label>
+                                                                <input type="text" class="form-control bg-light" value="@p.CustomerName (ID: #@p.CustomerId)" readonly />
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label text-muted">Available Unallocated Credit on Receipt</label>
+                                                                <input type="text" class="form-control bg-light font-tabular fw-bold text-success" value="₹@p.UnallocatedCredit.ToString("N2")" readonly />
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-semibold">Target Outstanding Invoice <span class="text-danger">*</span></label>
+                                                                <select name="TargetBillId" class="form-select form-select-sm" required>
+                                                                    <option value="">-- Choose Target Invoice --</option>
+                                                                    @foreach (var bill in Model.SelectedCustomerOutstandingBills)
+                                                                    {
+                                                                        <option value="@bill.BillId">
+                                                                            @bill.BillNumber (Month: @bill.BillingMonth/@bill.BillingYear) - Bal: ₹@bill.BalanceAmount.ToString("N2")
+                                                                        </option>
+                                                                    }
+                                                                </select>
+                                                                <div class="form-text small">Credit can only be applied to published invoices with an outstanding balance.</div>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-semibold">Amount to Allocate (₹) <span class="text-danger">*</span></label>
+                                                                <input type="number" step="0.01" min="0.01" max="@p.UnallocatedCredit" name="Amount" class="form-control font-tabular" value="@p.UnallocatedCredit" required />
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-semibold">Allocation Reason / Notes</label>
+                                                                <input type="text" name="Reason" class="form-control" placeholder="Optional notes for audit trail..." maxlength="500" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer bg-light">
+                                                            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                            <button type="submit" class="btn btn-sm btn-primary">Allocate Credit</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+
+                                    <!-- Void Payment Modal -->
+                                    @if (!p.IsVoided)
+                                    {
+                                        <div class="modal fade text-start font-sans" id="voidPaymentModal_@p.PaymentId" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content border-0 shadow">
+                                                    <form method="post" asp-action="VoidPayment">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="PaymentId" value="@p.PaymentId" />
+                                                        <div class="modal-header bg-danger text-white">
+                                                            <h6 class="modal-title fw-bold">
+                                                                <i class="cil-ban me-1"></i> VOID Payment Receipt: @p.ReceiptNumber
+                                                            </h6>
+                                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body p-4 small">
+                                                            <div class="alert alert-danger border-danger-subtle mb-3">
+                                                                <strong>WARNING:</strong> This action is permanent and cannot be undone.
+                                                                <ul class="mb-0 mt-2 ps-3">
+                                                                    <li>All active invoice allocations funded by this receipt will be immediately reversed.</li>
+                                                                    <li>Any unallocated advance credit from this receipt will be revoked to zero.</li>
+                                                                    <li>Associated invoice balances will be restored to their unpaid state.</li>
+                                                                </ul>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-semibold text-dark">
+                                                                    Mandatory Justification Reason <span class="text-danger">*</span>
+                                                                </label>
+                                                                <textarea name="VoidReason" class="form-control" rows="3" minlength="10" maxlength="500" placeholder="Minimum 10 characters explanation (e.g. Bounced cheque #1234, entered wrong customer in error)..." required></textarea>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer bg-light">
+                                                            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                            <button type="submit" class="btn btn-sm btn-danger text-white">Confirm &amp; Void Receipt</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Record Single Payment Receipt -->
+<div class="modal fade" id="recordPaymentModal" tabindex="-1" aria-labelledby="recordPaymentLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-action="RecordPayment" id="recordPaymentForm">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-light">
+                    <h6 class="modal-title fw-bold" id="recordPaymentLabel">
+                        <i class="cil-plus text-success me-1"></i> Record Customer Payment Receipt
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Select Customer <span class="text-danger">*</span></label>
+                            <select name="CustomerId" id="paymentCustomerId" class="form-select" required onchange="loadCustomerOutstandingBills(this.value)">
+                                <option value="">-- Choose Paying Customer --</option>
+                                @foreach (var c in Model.Customers)
+                                {
+                                    <option value="@c.CustomerId" selected="@(Model.SelectedCustomerId == c.CustomerId ? "selected" : null)">
+                                        @c.DisplayText
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Target Invoice <span class="text-danger">*</span></label>
+                            <select name="TargetBillId" id="paymentTargetBillId" class="form-select" required>
+                                <option value="">-- Select Customer First --</option>
+                                @foreach (var bill in Model.SelectedCustomerOutstandingBills)
+                                {
+                                    <option value="@bill.BillId">
+                                        @bill.BillNumber (Month: @bill.BillingMonth/@bill.BillingYear) &ndash; Bal: ₹@bill.BalanceAmount.ToString("N2")
+                                    </option>
+                                }
+                            </select>
+                            <div class="form-text small">Each payment receipt targets strictly ONE selected invoice.</div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Payment Amount (₹) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" min="0.01" max="1000000" name="Amount" class="form-control font-tabular fs-5 fw-bold" placeholder="0.00" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Payment Date <span class="text-danger">*</span></label>
+                            <input type="date" name="PaymentDate" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Payment Mode <span class="text-danger">*</span></label>
+                            <select name="PaymentMode" class="form-select" required>
+                                <option value="Offline" selected>Offline (Cash / Direct)</option>
+                                <option value="Online">Online (Bank Transfer / UPI)</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Reference / Instrument Number</label>
+                            <input type="text" name="ReferenceNumber" class="form-control" placeholder="Cheque #, UPI Ref, Bank UTR..." maxlength="100" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Notes / Remarks</label>
+                            <input type="text" name="Notes" class="form-control" placeholder="Optional settlement remarks..." maxlength="500" />
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info border-info-subtle small mt-4 mb-0">
+                        <i class="cil-info me-1"></i> <strong>Zero Automatic FIFO:</strong> The payment amount allocates up to the target invoice's remaining balance. Any excess payment amount is retained safely on the customer account as unallocated advance credit.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-success text-white">Record &amp; Allocate Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function loadCustomerOutstandingBills(customerId) {
+            const selectEl = document.getElementById('paymentTargetBillId');
+            if (!customerId) {
+                selectEl.innerHTML = '<option value="">-- Select Customer First --</option>';
+                return;
+            }
+
+            selectEl.innerHTML = '<option value="">Loading outstanding invoices...</option>';
+
+            fetch('@Url.Action("GetCustomerOutstandingBills", "Billing")?customerId=' + encodeURIComponent(customerId))
+                .then(response => response.json())
+                .then(data => {
+                    selectEl.innerHTML = '';
+                    if (!data.success || !data.outstandingBills || data.outstandingBills.length === 0) {
+                        selectEl.innerHTML = '<option value="">No outstanding published bills for this customer</option>';
+                        return;
+                    }
+
+                    selectEl.innerHTML = '<option value="">-- Choose Target Invoice --</option>';
+                    data.outstandingBills.forEach(b => {
+                        const opt = document.createElement('option');
+                        opt.value = b.billId;
+                        opt.textContent = `${b.billNumber} (Period: ${b.billingMonth}/${b.billingYear}) - Balance Due: ₹${Number(b.balanceAmount).toFixed(2)}`;
+                        selectEl.appendChild(opt);
+                    });
+                })
+                .catch(err => {
+                    console.error('Failed to load customer bills', err);
+                    selectEl.innerHTML = '<option value="">Error loading invoices</option>';
+                });
+        }
+    </script>
+}

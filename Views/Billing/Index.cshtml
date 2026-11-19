@@ -1,0 +1,466 @@
+@model Dairy_Management_System.Controllers.BillingIndexViewModel
+@{
+    Layout = "_LayoutAdmin";
+    ViewData["Title"] = "Monthly Billing & Invoicing";
+    ViewData["ActiveMenu"] = "Billing";
+
+    var currentMonth = Model.Criteria.BillingMonth ?? (byte)DateTime.Today.Month;
+    var currentYear = Model.Criteria.BillingYear ?? (short)DateTime.Today.Year;
+}
+
+<div class="admin-billing-container pb-5">
+    <!-- Feedback Alerts -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success border-success-subtle shadow-sm alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
+            <i class="cil-check-circle fs-5 text-success"></i>
+            <div>@TempData["SuccessMessage"]</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger border-danger-subtle shadow-sm alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
+            <i class="cil-warning fs-5 text-danger"></i>
+            <div>@TempData["ErrorMessage"]</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Header & Action Ribbon -->
+    <div class="card border-0 bg-white shadow-sm mb-4">
+        <div class="card-body py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle p-2 text-white bg-success d-flex align-items-center justify-content-center shadow-sm" style="width: 44px; height: 44px;">
+                    <i class="cil-description fs-4"></i>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <h5 class="mb-0 fw-bold text-dark">Monthly Billing &amp; Invoicing</h5>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">Authoritative Ledger</span>
+                    </div>
+                    <div class="text-muted small mt-1">
+                        Generate customer bills from verified deliveries, manage invoices, record manual payments, and monitor collections.
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button type="button" class="btn btn-success btn-sm text-white" data-bs-toggle="modal" data-bs-target="#generateSingleBillModal">
+                    <i class="cil-plus me-1"></i> Generate Bill
+                </button>
+                <a href="~/Billing/BulkBilling" class="btn btn-outline-primary btn-sm">
+                    <i class="cil-layers me-1"></i> Bulk Billing
+                </a>
+                <a href="~/Billing/Payments" class="btn btn-outline-secondary btn-sm">
+                    <i class="cil-credit-card me-1"></i> Payments &amp; Advance
+                </a>
+                <a href="~/Billing/Reports" class="btn btn-outline-dark btn-sm">
+                    <i class="cil-chart-line me-1"></i> Billing Reports
+                </a>
+            </div>
+        </div>
+
+        <!-- Sub-Navigation Tabs -->
+        <div class="card-footer bg-light border-top px-4 py-2">
+            <ul class="nav nav-pills card-header-pills small gap-2">
+                <li class="nav-item">
+                    <a class="nav-link active py-1 px-3" href="~/Billing">
+                        <i class="cil-list me-1"></i> Invoices Directory
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link py-1 px-3 text-secondary" href="~/Billing/BulkBilling">
+                        <i class="cil-layers me-1"></i> Bulk Generation &amp; Publishing
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link py-1 px-3 text-secondary" href="~/Billing/Payments">
+                        <i class="cil-credit-card me-1"></i> Payments &amp; Advance Credit
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link py-1 px-3 text-secondary" href="~/Billing/Reports">
+                        <i class="cil-chart-line me-1"></i> Reports &amp; Collections
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Six Live Metric Summary Cards -->
+    <div class="row g-3 mb-4">
+        <!-- Card 1: Total Monthly Billing -->
+        <div class="col-sm-6 col-xl-2">
+            <div class="card-stat p-3 h-100 bg-white shadow-sm border-0">
+                <span class="stat-label text-muted">Total Billing (@currentMonth/@currentYear)</span>
+                <div class="stat-value font-tabular text-dark fs-4 fw-bold">₹@Model.Summary.TotalBilledAmount.ToString("N2")</div>
+                <div class="stat-subtitle text-muted small">@Model.Summary.TotalVolumeLitres.ToString("N2") Litres Invoiced</div>
+            </div>
+        </div>
+
+        <!-- Card 2: Total Amount Collected -->
+        <div class="col-sm-6 col-xl-2">
+            <div class="card-stat p-3 h-100 bg-white shadow-sm border-0">
+                <span class="stat-label text-success">Total Collected</span>
+                <div class="stat-value font-tabular text-success fs-4 fw-bold">₹@Model.Summary.TotalCollections.ToString("N2")</div>
+                <div class="stat-subtitle text-muted small">
+                    @if (Model.Summary.TotalInvoiceAmount > 0)
+                    {
+                        @((Model.Summary.TotalCollections / Model.Summary.TotalInvoiceAmount * 100).ToString("F1"))
+                        <span>% Collection Rate</span>
+                    }
+                    else
+                    {
+                        <span>0.0% Collection Rate</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Outstanding Amount -->
+        <div class="col-sm-6 col-xl-2">
+            <div class="card-stat p-3 h-100 bg-white shadow-sm border-0">
+                <span class="stat-label text-danger">Total Outstanding</span>
+                <div class="stat-value font-tabular text-danger fs-4 fw-bold">₹@Model.Summary.TotalOutstanding.ToString("N2")</div>
+                <div class="stat-subtitle text-muted small">Active Receivables</div>
+            </div>
+        </div>
+
+        <!-- Card 4: Paid Bills -->
+        <div class="col-sm-6 col-xl-2">
+            <div class="card-stat p-3 h-100 bg-white shadow-sm border-0">
+                <span class="stat-label text-success">Paid Bills</span>
+                <div class="stat-value font-tabular text-success fs-4 fw-bold">@Model.Summary.PaidBillsCount</div>
+                <div class="stat-subtitle text-muted small">Fully Settled Accounts</div>
+            </div>
+        </div>
+
+        <!-- Card 5: Partially Paid Bills -->
+        <div class="col-sm-6 col-xl-2">
+            <div class="card-stat p-3 h-100 bg-white shadow-sm border-0">
+                <span class="stat-label text-info">Partially Paid</span>
+                <div class="stat-value font-tabular text-info fs-4 fw-bold">@Model.Summary.PartiallyPaidBillsCount</div>
+                <div class="stat-subtitle text-muted small">Partial Receipts Applied</div>
+            </div>
+        </div>
+
+        <!-- Card 6: Unpaid Bills -->
+        <div class="col-sm-6 col-xl-2">
+            <div class="card-stat p-3 h-100 bg-white shadow-sm border-0">
+                <span class="stat-label text-warning-emphasis">Unpaid / Overdue</span>
+                <div class="stat-value font-tabular text-warning-emphasis fs-4 fw-bold">@(Model.Summary.UnpaidBillsCount + Model.Summary.OverdueBillsCount)</div>
+                <div class="stat-subtitle text-muted small">
+                    <span class="text-danger fw-semibold">@Model.Summary.OverdueBillsCount Overdue</span>, @Model.Summary.UnpaidBillsCount Unpaid
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Bar -->
+    <div class="card border-0 bg-white shadow-sm mb-4">
+        <div class="card-body p-3">
+            <form method="get" asp-action="Index" class="row g-2 align-items-center">
+                <div class="col-md-2">
+                    <label class="form-label small text-muted mb-1">Billing Month</label>
+                    <select name="BillingMonth" class="form-select form-select-sm">
+                        <option value="">All Months</option>
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            <option value="@m" selected="@(Model.Criteria.BillingMonth == m ? "selected" : null)">
+                                @(new DateTime(2026, m, 1).ToString("MMMM"))
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-muted mb-1">Billing Year</label>
+                    <select name="BillingYear" class="form-select form-select-sm">
+                        <option value="">All Years</option>
+                        @for (int y = DateTime.Today.Year - 1; y <= DateTime.Today.Year + 1; y++)
+                        {
+                            <option value="@y" selected="@(Model.Criteria.BillingYear == y ? "selected" : null)">
+                                @y
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-muted mb-1">Route</label>
+                    <select name="RouteId" class="form-select form-select-sm">
+                        <option value="">All Routes</option>
+                        @foreach (var r in Model.Routes)
+                        {
+                            <option value="@r.RouteId" selected="@(Model.Criteria.RouteId == r.RouteId ? "selected" : null)">
+                                @r.RouteName (@r.RouteCode)
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small text-muted mb-1">Payment Status</label>
+                    <select name="PaymentStatus" class="form-select form-select-sm">
+                        <option value="">All Statuses</option>
+                        <option value="Paid" selected="@(Model.Criteria.PaymentStatus == "Paid" ? "selected" : null)">Paid</option>
+                        <option value="Partially Paid" selected="@(Model.Criteria.PaymentStatus == "Partially Paid" ? "selected" : null)">Partially Paid</option>
+                        <option value="Unpaid" selected="@(Model.Criteria.PaymentStatus == "Unpaid" ? "selected" : null)">Unpaid</option>
+                        <option value="Overdue" selected="@(Model.Criteria.PaymentStatus == "Overdue" ? "selected" : null)">Overdue</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted mb-1">Search Customer / Bill #</label>
+                    <input type="text" name="SearchText" class="form-control form-control-sm" placeholder="Name, code, or bill #" value="@Model.Criteria.SearchText" />
+                </div>
+                <div class="col-md-1 d-flex gap-1 align-self-end">
+                    <button type="submit" class="btn btn-sm btn-primary w-100" title="Apply Filter">
+                        <i class="cil-filter"></i> Filter
+                    </button>
+                    <a href="~/Billing" class="btn btn-sm btn-outline-secondary" title="Reset Filters">
+                        <i class="cil-reload"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bills Directory Table -->
+    <div class="card border-0 bg-white shadow-sm">
+        <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <i class="cil-list text-success"></i>
+                <span class="fw-semibold text-dark">Customer Invoices</span>
+                <span class="badge bg-light text-secondary border font-tabular">@Model.TotalCount total records</span>
+            </div>
+            <div class="small text-muted">
+                Showing @Model.Bills.Count of @Model.TotalCount invoices
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small text-uppercase text-muted border-bottom">
+                    <tr>
+                        <th class="ps-3">Bill Number</th>
+                        <th>Customer</th>
+                        <th>Route</th>
+                        <th>Period</th>
+                        <th class="text-end">Invoice Amount</th>
+                        <th class="text-end">Paid Amount</th>
+                        <th class="text-end">Outstanding</th>
+                        <th>Due Date</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-end pe-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="small">
+                    @if (Model.Bills == null || Model.Bills.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="10" class="text-center py-5">
+                                <div class="py-4">
+                                    <div class="text-muted fs-1 mb-2">
+                                        <i class="cil-description"></i>
+                                    </div>
+                                    <h6 class="fw-bold text-dark">No Monthly Invoices Found</h6>
+                                    <p class="text-muted small mb-3">
+                                        No billing records match the selected filters, or no monthly bills have been generated yet.
+                                    </p>
+                                    <button type="button" class="btn btn-sm btn-success text-white me-2" data-bs-toggle="modal" data-bs-target="#generateSingleBillModal">
+                                        <i class="cil-plus me-1"></i> Generate First Bill
+                                    </button>
+                                    <a href="~/Billing/BulkBilling" class="btn btn-sm btn-outline-primary">
+                                        <i class="cil-layers me-1"></i> Run Bulk Billing
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var bill in Model.Bills)
+                        {
+                            <tr>
+                                <td class="ps-3 font-tabular fw-semibold">
+                                    <a href="~/Billing/Details/@bill.BillId" class="text-primary text-decoration-none">
+                                        @bill.BillNumber
+                                    </a>
+                                    @if (!bill.IsPublished)
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle ms-1" style="font-size: 0.65rem;">DRAFT</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-dark">@bill.CustomerName</div>
+                                    <div class="text-muted small">@bill.CustomerPhone</div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-secondary border">@(string.IsNullOrEmpty(bill.RouteName) ? "Unassigned" : bill.RouteName)</span>
+                                </td>
+                                <td class="font-tabular text-muted">
+                                    @(new DateTime(bill.BillingYear, bill.BillingMonth, 1).ToString("MMM yyyy"))
+                                </td>
+                                <td class="text-end font-tabular fw-semibold text-dark">
+                                    ₹@bill.CurrentMonthInvoiceAmount.ToString("N2")
+                                </td>
+                                <td class="text-end font-tabular text-success fw-medium">
+                                    ₹@bill.PaidAmount.ToString("N2")
+                                </td>
+                                <td class="text-end font-tabular fw-bold @(bill.BalanceAmount > 0 ? "text-danger" : "text-success")">
+                                    ₹@bill.BalanceAmount.ToString("N2")
+                                </td>
+                                <td class="font-tabular">
+                                    @if (bill.PaymentDueDate.HasValue)
+                                    {
+                                        <span>@bill.PaymentDueDate.Value.ToString("dd MMM yyyy")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted fst-italic">@(bill.IsPublished ? "Not Set" : "Draft / Not Set")</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    @switch (bill.PaymentStatus)
+                                    {
+                                        case "Paid":
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Paid</span>
+                                            break;
+                                        case "Partially Paid":
+                                            <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1">Partially Paid</span>
+                                            break;
+                                        case "Overdue":
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">Overdue</span>
+                                            break;
+                                        default:
+                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">Unpaid</span>
+                                            break;
+                                    }
+                                </td>
+                                <td class="text-end pe-3">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="~/Billing/Details/@bill.BillId" class="btn btn-outline-secondary" title="View Bill Details">
+                                            <i class="cil-eye"></i> Details
+                                        </a>
+                                        @if (!bill.IsPublished)
+                                        {
+                                            <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#publishModal_@bill.BillId" title="Publish Bill">
+                                                <i class="cil-check"></i> Publish
+                                            </button>
+                                        }
+                                        else if (bill.BalanceAmount > 0)
+                                        {
+                                            <a href="~/Billing/Payments?selectedCustomerId=@bill.CustomerId" class="btn btn-outline-primary" title="Record Payment">
+                                                <i class="cil-credit-card"></i> Pay
+                                            </a>
+                                        }
+                                    </div>
+
+                                    <!-- Publish Modal per Draft Bill -->
+                                    @if (!bill.IsPublished)
+                                    {
+                                        <div class="modal fade text-start" id="publishModal_@bill.BillId" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content border-0 shadow">
+                                                    <form method="post" asp-action="PublishBill">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="billId" value="@bill.BillId" />
+                                                        <input type="hidden" name="returnUrl" value="~/Billing" />
+                                                        <div class="modal-header bg-light">
+                                                            <h6 class="modal-title fw-bold">Publish Invoice: @bill.BillNumber</h6>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body p-4">
+                                                            <p class="mb-3">
+                                                                Publishing transitions this invoice from <strong>Draft</strong> to <strong>Published</strong> mode and snapshots the payment due date based on customer grace days.
+                                                            </p>
+                                                            <div class="mb-3">
+                                                                <label class="form-label small fw-semibold text-dark">Payment Due Date / Grace Period (Optional)</label>
+                                                                <div class="input-group">
+                                                                    <input type="number" name="graceDays" class="form-control" placeholder="Leave empty for no due date" min="1" max="90" value="" />
+                                                                    <span class="input-group-text small text-muted">days grace</span>
+                                                                </div>
+                                                                <div class="form-text small text-muted mt-1">
+                                                                    <i class="cil-info me-1"></i> <strong>Optional Admin Choice:</strong> Enter grace days to snapshot an authoritative due date. If left blank, this invoice will be published without a due date (<code>PaymentDueDate = NULL</code>) and will never be marked Overdue.
+                                                                </div>
+                                                            </div>
+                                                            <div class="alert alert-warning border-warning-subtle small mb-0">
+                                                                <i class="cil-warning me-1"></i> Once published, milk deliveries for this month are locked against recalculation. Any financial adjustments must use the formal audited revision workflow.
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer bg-light">
+                                                            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                            <button type="submit" class="btn btn-sm btn-success text-white">Confirm &amp; Publish</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Generate Single Bill -->
+<div class="modal fade" id="generateSingleBillModal" tabindex="-1" aria-labelledby="generateSingleBillLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-action="GenerateBill">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-light">
+                    <h6 class="modal-title fw-bold" id="generateSingleBillLabel">
+                        <i class="cil-plus text-success me-1"></i> Generate Customer Bill
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Select Customer <span class="text-danger">*</span></label>
+                        <select name="customerId" class="form-select" required>
+                            <option value="">-- Choose Active Customer --</option>
+                            @foreach (var c in Model.Customers)
+                            {
+                                <option value="@c.CustomerId">@c.DisplayText</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Billing Month <span class="text-danger">*</span></label>
+                            <select name="month" class="form-select" required>
+                                @for (int m = 1; m <= 12; m++)
+                                {
+                                    <option value="@m" selected="@(m == DateTime.Today.Month ? "selected" : null)">
+                                        @(new DateTime(2026, m, 1).ToString("MMMM"))
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Billing Year <span class="text-danger">*</span></label>
+                            <select name="year" class="form-select" required>
+                                @for (int y = DateTime.Today.Year - 1; y <= DateTime.Today.Year + 1; y++)
+                                {
+                                    <option value="@y" selected="@(y == DateTime.Today.Year ? "selected" : null)">
+                                        @y
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="alert alert-info border-info-subtle small mb-0">
+                        <i class="cil-info me-1"></i> Generates a draft invoice by aggregating all completed deliveries in the target month with historical rate snapshots.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-success text-white">Generate Draft Bill</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

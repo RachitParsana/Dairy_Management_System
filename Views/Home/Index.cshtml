@@ -1,4 +1,7 @@
 ﻿@using System.Security.Claims
+@using Dairy_Management_System.Services
+@using Dairy_Management_System.Models.Billing
+@inject IBillingService BillingService
 @{
     Layout = "_LayoutAdmin";
     ViewData["Title"] = "Admin Dashboard";
@@ -8,6 +11,29 @@
     var adminFullName = User.FindFirst(ClaimTypes.GivenName)?.Value;
     var adminDisplayName = !string.IsNullOrWhiteSpace(adminFullName) ? adminFullName : adminUsername;
     var adminPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value ?? "";
+
+    decimal monthlyBillingTotal = 0m;
+    decimal pendingPaymentsTotal = 0m;
+    int pendingCount = 0;
+    bool billingLoaded = false;
+
+    try
+    {
+        var now = DateTime.Today;
+        var summary = await BillingService.GetMonthlyBillingSummaryReportAsync(now.Month, now.Year);
+        if (summary != null)
+        {
+            monthlyBillingTotal = summary.TotalInvoiceAmount;
+            pendingPaymentsTotal = summary.TotalOutstanding;
+            pendingCount = summary.UnpaidBillsCount + summary.PartiallyPaidBillsCount;
+            billingLoaded = true;
+        }
+    }
+    catch
+    {
+        // Suppress errors gracefully, show ₹0.00 or neutral indicator without leaking SQL
+        billingLoaded = false;
+    }
 }
 
 <!-- Environment & Status Header Bar -->
@@ -105,9 +131,13 @@
                     <i class="cil-calculator"></i>
                 </div>
             </div>
-            <div class="stat-value font-tabular"><span class="financial-currency">₹</span>--</div>
-            <div class="stat-subtitle text-muted small">
-                Billing cycle uncalculated
+            <div class="stat-value font-tabular">
+                <span class="financial-currency">₹</span>@(billingLoaded ? monthlyBillingTotal.ToString("N2") : "0.00")
+            </div>
+            <div class="stat-subtitle small">
+                <a href="~/Billing" class="text-success text-decoration-none fw-semibold">
+                    Billing Console &rarr;
+                </a>
             </div>
         </div>
     </div>
@@ -121,9 +151,13 @@
                     <i class="cil-warning"></i>
                 </div>
             </div>
-            <div class="stat-value font-tabular text-secondary"><span class="financial-currency">₹</span>--</div>
-            <div class="stat-subtitle text-muted small">
-                No overdue records loaded
+            <div class="stat-value font-tabular @(pendingPaymentsTotal > 0 ? "text-danger" : "text-secondary")">
+                <span class="financial-currency">₹</span>@(billingLoaded ? pendingPaymentsTotal.ToString("N2") : "0.00")
+            </div>
+            <div class="stat-subtitle small">
+                <a href="~/Billing?PaymentStatus=Unpaid" class="text-danger text-decoration-none fw-semibold">
+                    View Outstanding (@pendingCount) &rarr;
+                </a>
             </div>
         </div>
     </div>
