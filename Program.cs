@@ -125,6 +125,12 @@ namespace Dairy_Management_System
             // Register Monthly Billing & Payments Application Service
             builder.Services.AddScoped<IBillingService, BillingService>();
 
+            // Register Route Lookup ADO.NET Repository & Application Service
+            builder.Services.AddScoped<IRouteRepository>(sp => new RouteRepository(
+                sp.GetRequiredService<ISqlConnectionFactory>(),
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<RouteRepository>>()));
+            builder.Services.AddScoped<IRouteService, RouteService>();
+
             var app = builder.Build();
 
             // Enable forwarded headers processing before HttpsRedirection and Authentication
