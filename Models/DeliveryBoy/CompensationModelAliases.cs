@@ -1,0 +1,10 @@
+// Re-exports / namespace bridging for Day 6 DeliveryBoy and Compensation models
+global using DeliveryBoyMonthlyCompensation = Dairy_Management_System.Models.Compensation.DeliveryBoyMonthlyCompensation;
+global using MonthlyCompensationListItemDto = Dairy_Management_System.Models.Compensation.MonthlyCompensationListItemDto;
+global using MonthlyCompensationDetailsDto = Dairy_Management_System.Models.Compensation.MonthlyCompensationDetailsDto;
+global using CompensationAdjustmentDto = Dairy_Management_System.Models.Compensation.CompensationAdjustmentDto;
+global using ApplyCompensationAdjustmentViewModel = Dairy_Management_System.Models.Compensation.ApplyCompensationAdjustmentViewModel;
+global using RecordCompensationPayoutViewModel = Dairy_Management_System.Models.Compensation.RecordCompensationPayoutViewModel;
+global using FinalizeCompensationViewModel = Dairy_Management_System.Models.Compensation.FinalizeCompensationViewModel;
+global using DeliveryBoyDailyDeliveryBreakdownDto = Dairy_Management_System.Models.Compensation.DeliveryBoyDailyDeliveryBreakdownDto;
+global using CompensationFilterCriteria = Dairy_Management_System.Models.Compensation.CompensationFilterCriteria;

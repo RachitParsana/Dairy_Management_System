@@ -131,6 +131,18 @@ namespace Dairy_Management_System
                 sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<RouteRepository>>()));
             builder.Services.AddScoped<IRouteService, RouteService>();
 
+            // Register Delivery Boy & Compensation ADO.NET Repositories
+            builder.Services.AddScoped<IDeliveryBoyRepository>(sp => new DeliveryBoyRepository(
+                sp.GetRequiredService<ISqlConnectionFactory>(),
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<DeliveryBoyRepository>>()));
+            builder.Services.AddScoped<ICompensationRepository>(sp => new CompensationRepository(
+                sp.GetRequiredService<ISqlConnectionFactory>(),
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<CompensationRepository>>()));
+
+            // Register Delivery Boy & Compensation Application Services
+            builder.Services.AddScoped<IDeliveryBoyService, DeliveryBoyService>();
+            builder.Services.AddScoped<ICompensationService, CompensationService>();
+
             var app = builder.Build();
 
             // Enable forwarded headers processing before HttpsRedirection and Authentication
