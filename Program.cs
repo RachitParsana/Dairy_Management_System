@@ -117,6 +117,14 @@ namespace Dairy_Management_System
             // Register Daily Milk Management Application Service
             builder.Services.AddScoped<IDailyMilkService, DailyMilkService>();
 
+            // Register Monthly Billing & Payments ADO.NET Repository
+            builder.Services.AddScoped<IBillingRepository>(sp => new BillingRepository(
+                sp.GetRequiredService<ISqlConnectionFactory>(),
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<BillingRepository>>()));
+
+            // Register Monthly Billing & Payments Application Service
+            builder.Services.AddScoped<IBillingService, BillingService>();
+
             var app = builder.Build();
 
             // Enable forwarded headers processing before HttpsRedirection and Authentication
