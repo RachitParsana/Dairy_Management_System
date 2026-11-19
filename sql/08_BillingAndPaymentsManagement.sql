@@ -858,6 +858,10 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
+    -- Validate @GraceDays if provided: must be between 1 and 90
+    IF @GraceDays IS NOT NULL AND (@GraceDays < 1 OR @GraceDays > 90)
+        THROW 50013, 'Grace days must be between 1 and 90 or NULL.', 1;
+
     BEGIN TRANSACTION;
 
     DECLARE @IsPublished BIT, @PeriodEndDate DATE, @BalanceAmount DECIMAL(18,2), @PaidAmount DECIMAL(18,2);
@@ -875,9 +879,10 @@ BEGIN
     IF @IsPublished = 1
         THROW 50011, 'Bill is already published.', 1;
 
-    -- Due date policy check: if grace days not provided, default requires explicit confirmation or throws
-    DECLARE @EffectiveGraceDays INT = ISNULL(@GraceDays, 10);
-    DECLARE @PaymentDueDate DATE = DATEADD(day, @EffectiveGraceDays, @PeriodEndDate);
+    -- Calculate PaymentDueDate: NULL if @GraceDays is NULL; otherwise DATEADD(day, @GraceDays, @PeriodEndDate)
+    DECLARE @PaymentDueDate DATE = NULL;
+    IF @GraceDays IS NOT NULL
+        SET @PaymentDueDate = DATEADD(day, @GraceDays, @PeriodEndDate);
 
     -- Determine initial published status
     DECLARE @CurrentISTDate DATE = CAST(SYSUTCDATETIME() AT TIME ZONE 'UTC' AT TIME ZONE 'India Standard Time' AS DATE);
@@ -886,9 +891,9 @@ BEGIN
     IF @BalanceAmount <= 0.00
         SET @InitialStatus = 'Paid';
     ELSE IF @PaidAmount = 0.00
-        SET @InitialStatus = CASE WHEN @CurrentISTDate > @PaymentDueDate THEN 'Overdue' ELSE 'Unpaid' END;
+        SET @InitialStatus = CASE WHEN @PaymentDueDate IS NOT NULL AND @CurrentISTDate > @PaymentDueDate THEN 'Overdue' ELSE 'Unpaid' END;
     ELSE
-        SET @InitialStatus = CASE WHEN @CurrentISTDate > @PaymentDueDate THEN 'Overdue' ELSE 'Partially Paid' END;
+        SET @InitialStatus = CASE WHEN @PaymentDueDate IS NOT NULL AND @CurrentISTDate > @PaymentDueDate THEN 'Overdue' ELSE 'Partially Paid' END;
 
     UPDATE [dbo].[MonthlyBills]
     SET [IsPublished] = 1,
@@ -918,6 +923,10 @@ AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT OFF;
+
+    -- Validate @GraceDays if provided: must be between 1 and 90
+    IF @GraceDays IS NOT NULL AND (@GraceDays < 1 OR @GraceDays > 90)
+        THROW 50013, 'Grace days must be between 1 and 90 or NULL.', 1;
 
     SET @PublishedCount = 0;
 
