@@ -49,7 +49,7 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "DeliveryBoy" ? "active" : "")" href="#delivery-boy-management">
+                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "DeliveryBoy" || ViewData["ActiveMenu"]?.ToString() == "Compensation" ? "active" : "")" href="~/DeliveryBoy">
                     <i class="nav-icon cil-bike"></i> Delivery Boy Management
                 </a>
             </li>

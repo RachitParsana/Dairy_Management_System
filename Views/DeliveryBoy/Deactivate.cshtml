@@ -1,0 +1,128 @@
+@model Dairy_Management_System.Models.DeliveryBoy.DeactivateDeliveryBoyViewModel
+@{
+    ViewData["Title"] = $"Deactivate Staff: {Model.FullName}";
+    ViewData["ActiveMenu"] = "DeliveryBoy";
+}
+
+<div class="container-fluid px-4 py-3">
+    <!-- Breadcrumb & Header -->
+    <div class="row align-items-center mb-3">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 text-muted small">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" class="text-decoration-none">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a asp-controller="DeliveryBoy" asp-action="Index" class="text-decoration-none">Delivery Boys</a></li>
+                    <li class="breadcrumb-item"><a asp-controller="DeliveryBoy" asp-action="Details" asp-route-id="@Model.DeliveryBoyId" class="text-decoration-none">@Model.FullName</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Deactivate</li>
+                </ol>
+            </nav>
+            <h3 class="mb-0 fw-bold text-danger">
+                <i class="bi bi-person-x-fill me-2"></i>Deactivate Delivery Boy Account
+            </h3>
+            <p class="text-muted small mb-0">Suspend delivery operations, revoke portal access, and optionally reassign customers for @Model.FullName.</p>
+        </div>
+        <div class="col-md-4 text-md-end mt-2 mt-md-0">
+            <a asp-controller="DeliveryBoy" asp-action="Details" asp-route-id="@Model.DeliveryBoyId" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back to Profile
+            </a>
+        </div>
+    </div>
+
+    @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <h6 class="alert-heading fw-bold mb-1"><i class="bi bi-x-circle-fill me-2"></i>Please correct the following:</h6>
+            <div asp-validation-summary="All" class="text-danger small mb-0"></div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-7">
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-danger text-white py-3">
+                    <h6 class="card-title mb-0 fw-bold">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>Lifecycle Suspension Confirmation
+                    </h6>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-warning border-warning d-flex align-items-start mb-4">
+                        <i class="bi bi-shield-exclamation fs-3 text-warning me-3 flex-shrink-0"></i>
+                        <div class="small">
+                            <strong class="d-block mb-1 text-dark">Important System Safeguards & Consequences:</strong>
+                            <ul class="mb-0 ps-3">
+                                <li>Staff mobile app and web portal login credentials will be revoked immediately.</li>
+                                <li>The agent will be prevented from accepting, modifying, or completing runsheet deliveries.</li>
+                                <li>Historical delivery records, rate snapshots, and past statements are fully preserved and immutable.</li>
+                                <li>Any pending or draft compensation statements remain fully payable.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <form asp-controller="DeliveryBoy" asp-action="Deactivate" method="post" id="deactivateDeliveryBoyForm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="DeliveryBoyId" />
+                        <input type="hidden" asp-for="FullName" />
+                        <input type="hidden" asp-for="ActiveCustomerCount" />
+
+                        <!-- Active Customers Information -->
+                        <div class="p-3 bg-light rounded-3 border mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-semibold text-dark">
+                                    <i class="bi bi-people-fill text-primary me-1"></i>Currently Assigned Active Customers
+                                </span>
+                                <span class="badge @(Model.ActiveCustomerCount > 0 ? "bg-warning text-dark" : "bg-success") px-2 py-1">
+                                    @Model.ActiveCustomerCount Active
+                                </span>
+                            </div>
+
+                            @if (Model.ActiveCustomerCount > 0)
+                            {
+                                <p class="text-muted small mb-2">
+                                    There are currently <strong>@Model.ActiveCustomerCount</strong> active customer(s) assigned to this agent. You may reassign them now to another active delivery boy, or leave them unassigned to reassign manually later.
+                                </p>
+                                <label asp-for="ReassignToDeliveryBoyId" class="form-label fw-semibold small text-muted">Reassign Customers To:</label>
+                                <select asp-for="ReassignToDeliveryBoyId" class="form-select">
+                                    <option value="">-- Leave Customers Unassigned (Reassign Later) --</option>
+                                    @if (Model.AvailableDeliveryBoys != null)
+                                    {
+                                        foreach (var boy in Model.AvailableDeliveryBoys)
+                                        {
+                                            <option value="@boy.DeliveryBoyId">Reassign to: @boy.FullName (@boy.Phone)</option>
+                                        }
+                                    }
+                                </select>
+                            }
+                            else
+                            {
+                                <p class="text-muted small mb-0">No active customer assignments exist for this delivery boy.</p>
+                            }
+                        </div>
+
+                        <!-- Deactivation Reason -->
+                        <div class="mb-4">
+                            <label asp-for="Reason" class="form-label fw-semibold">Administrative Reason for Deactivation <span class="text-danger">*</span></label>
+                            <textarea asp-for="Reason" class="form-control" rows="3" placeholder="Provide reason (e.g. Resignation, Extended Leave, Disciplinary, Contract Completion - min 5 characters)..." minlength="5" maxlength="250" required></textarea>
+                            <span asp-validation-for="Reason" class="text-danger small"></span>
+                            <div class="form-text small text-muted">This justification will be permanently recorded in the administrative audit logs.</div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                            <a asp-controller="DeliveryBoy" asp-action="Details" asp-route-id="@Model.DeliveryBoyId" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-1"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-danger px-4 fw-semibold shadow-sm">
+                                <i class="bi bi-person-x-fill me-1"></i> Confirm Deactivation
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

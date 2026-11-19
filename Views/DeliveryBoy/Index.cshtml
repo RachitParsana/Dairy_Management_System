@@ -1,0 +1,349 @@
+@model Dairy_Management_System.Models.DeliveryBoy.DeliveryBoyIndexViewModel
+@{
+    Layout = "_LayoutAdmin";
+    ViewData["Title"] = "Delivery Boy Management";
+    ViewData["ActiveMenu"] = "DeliveryBoy";
+}
+
+<div class="admin-deliveryboy-container pb-5">
+    <!-- Feedback Alerts -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success border-success-subtle shadow-sm alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
+            <i class="cil-check-circle fs-5 text-success"></i>
+            <div>@TempData["SuccessMessage"]</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger border-danger-subtle shadow-sm alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
+            <i class="cil-warning fs-5 text-danger"></i>
+            <div>@TempData["ErrorMessage"]</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Header & Action Ribbon -->
+    <div class="card border-0 bg-white shadow-sm mb-4">
+        <div class="card-body py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle p-2 text-white bg-success d-flex align-items-center justify-content-center shadow-sm" style="width: 44px; height: 44px;">
+                    <i class="cil-bike fs-4"></i>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <h5 class="mb-0 fw-bold text-dark">Delivery Boy Management</h5>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">Fleet Directory</span>
+                    </div>
+                    <div class="text-muted small mt-1">
+                        Manage field delivery agents, primary route allocations, commission tiers, fixed base salaries, and monthly compensation.
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <a asp-action="Create" class="btn btn-success btn-sm text-white d-inline-flex align-items-center gap-1 shadow-sm">
+                    <i class="cil-plus"></i> Register Delivery Boy
+                </a>
+                <a asp-controller="Compensation" asp-action="Index" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1">
+                    <i class="cil-cash"></i> Monthly Payroll &amp; Compensation
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5 Live Metric Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl">
+            <div class="card-stat p-3 h-100 bg-white shadow-sm border-0">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="stat-label text-muted">Total Agents</span>
+                    <div class="stat-icon" style="background-color: #f1f5f9; color: #475569;">
+                        <i class="cil-people"></i>
+                    </div>
+                </div>
+                <div class="stat-value font-tabular text-dark fs-4 fw-bold">@Model.TotalEmployees</div>
+                <div class="stat-subtitle text-muted small">Registered in system</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl">
+            <div class="card-stat p-3 h-100 bg-white shadow-sm border-0">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="stat-label text-muted">Active Agents</span>
+                    <div class="stat-icon" style="background-color: #ecfdf5; color: #059669;">
+                        <i class="cil-check-circle"></i>
+                    </div>
+                </div>
+                <div class="stat-value font-tabular text-success fs-4 fw-bold">@Model.ActiveEmployees</div>
+                <div class="stat-subtitle text-muted small">Eligible for runsheets</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl">
+            <div class="card-stat p-3 h-100 bg-white shadow-sm border-0">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="stat-label text-muted">Inactive Agents</span>
+                    <div class="stat-icon" style="background-color: #fef2f2; color: #dc2626;">
+                        <i class="cil-user-x"></i>
+                    </div>
+                </div>
+                <div class="stat-value font-tabular text-danger fs-4 fw-bold">@Model.InactiveEmployees</div>
+                <div class="stat-subtitle text-muted small">Deactivated accounts</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl">
+            <div class="card-stat p-3 h-100 bg-white shadow-sm border-0">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="stat-label text-muted">Commission Model</span>
+                    <div class="stat-icon" style="background-color: #eff6ff; color: #2563eb;">
+                        <i class="cil-chart-pie"></i>
+                    </div>
+                </div>
+                <div class="stat-value font-tabular text-primary fs-4 fw-bold">@Model.CommissionEmployees</div>
+                <div class="stat-subtitle text-muted small">Per-litre compensation</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl">
+            <div class="card-stat p-3 h-100 bg-white shadow-sm border-0">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="stat-label text-muted">Fixed Salary Model</span>
+                    <div class="stat-icon" style="background-color: #faf5ff; color: #7c3aed;">
+                        <i class="cil-briefcase"></i>
+                    </div>
+                </div>
+                <div class="stat-value font-tabular text-purple fs-4 fw-bold" style="color: #7c3aed;">@Model.FixedSalaryEmployees</div>
+                <div class="stat-subtitle text-muted small">Monthly recurring salary</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Toolbar -->
+    <div class="card border-0 bg-white shadow-sm mb-4">
+        <div class="card-body p-3">
+            <form method="get" asp-action="Index" class="row g-2 align-items-center">
+                <div class="col-md-3">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light border-end-0 text-muted">
+                            <i class="cil-search"></i>
+                        </span>
+                        <input type="text" name="searchTerm" value="@Model.Criteria.SearchTerm" class="form-control border-start-0" placeholder="Search name, phone, username..." />
+                    </div>
+                </div>
+                <div class="col-sm-6 col-md-2">
+                    <select name="statusFilter" class="form-select form-select-sm">
+                        <option value="All" selected="@(Model.Criteria.StatusFilter == "All")">All Statuses</option>
+                        <option value="Active" selected="@(Model.Criteria.StatusFilter == "Active")">Active Only</option>
+                        <option value="Inactive" selected="@(Model.Criteria.StatusFilter == "Inactive")">Inactive Only</option>
+                    </select>
+                </div>
+                <div class="col-sm-6 col-md-2">
+                    <select name="compensationType" class="form-select form-select-sm">
+                        <option value="All" selected="@(Model.Criteria.CompensationType == "All")">All Compensation</option>
+                        <option value="Commission" selected="@(Model.Criteria.CompensationType == "Commission")">Commission Only</option>
+                        <option value="Fixed Salary" selected="@(Model.Criteria.CompensationType == "Fixed Salary")">Fixed Salary Only</option>
+                    </select>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <select name="routeId" class="form-select form-select-sm">
+                        <option value="" selected="@(!Model.Criteria.RouteId.HasValue)">All Primary Routes</option>
+                        @foreach (var r in Model.AvailableRoutes)
+                        {
+                            <option value="@r.RouteId" selected="@(Model.Criteria.RouteId == r.RouteId)">@r.RouteName (@r.RouteCode)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-sm-6 col-md-2 d-flex gap-2 justify-content-end">
+                    <button type="submit" class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1">
+                        <i class="cil-filter"></i> Filter
+                    </button>
+                    <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                        Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delivery Boy Directory Table -->
+    <div class="card border-0 bg-white shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-4">Agent Name</th>
+                        <th>Mobile Number</th>
+                        <th>Assigned Route</th>
+                        <th>Compensation Type</th>
+                        <th>Rate / Base Salary</th>
+                        <th class="text-center">Customers</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.DeliveryBoys != null && Model.DeliveryBoys.Count > 0)
+                    {
+                        @foreach (var boy in Model.DeliveryBoys)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-semibold small" style="width: 34px; height: 34px; background-color: @(boy.IsActive ? "#059669" : "#94a3b8");">
+                                            @(string.IsNullOrWhiteSpace(boy.FullName) ? "DB" : (boy.FullName.Length >= 2 ? boy.FullName.Substring(0, 2).ToUpper() : boy.FullName.ToUpper()))
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold text-dark">@boy.FullName</div>
+                                            <div class="text-muted small">@@@boy.Username</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="font-tabular">@boy.Phone</span>
+                                    @if (!string.IsNullOrWhiteSpace(boy.VehicleNumber))
+                                    {
+                                        <div class="text-muted small"><i class="cil-truck me-1"></i>@boy.VehicleNumber</div>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(boy.RouteName))
+                                    {
+                                        <span class="badge bg-light text-dark border">
+                                            @boy.RouteName (@boy.RouteCode)
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">Unassigned</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (boy.CompensationType == "Commission")
+                                    {
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                            <i class="cil-chart-pie me-1"></i> Commission
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-purple-subtle border" style="background-color: #faf5ff; color: #7c3aed; border-color: #e9d5ff !important;">
+                                            <i class="cil-briefcase me-1"></i> Fixed Salary
+                                        </span>
+                                    }
+                                </td>
+                                <td class="font-tabular fw-semibold">
+                                    @if (boy.CompensationType == "Commission")
+                                    {
+                                        <span>₹@boy.CurrentCommissionRate.ToString("N2") <small class="text-muted fw-normal">/ L</small></span>
+                                    }
+                                    else
+                                    {
+                                        <span>₹@boy.MonthlyBaseSalary.ToString("N2") <small class="text-muted fw-normal">/ mo</small></span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge rounded-pill bg-light text-dark border font-tabular px-2">
+                                        @boy.ActiveCustomerCount
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (boy.IsActive)
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            <i class="cil-check me-1"></i> Active
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                            <i class="cil-x me-1"></i> Inactive
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="btn-group btn-group-sm">
+                                        <a asp-action="Details" asp-route-id="@boy.DeliveryBoyId" class="btn btn-outline-secondary" title="View Profile & Details">
+                                            <i class="cil-eye"></i>
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@boy.DeliveryBoyId" class="btn btn-outline-secondary" title="Edit Profile">
+                                            <i class="cil-pencil"></i>
+                                        </a>
+                                        @if (boy.IsActive)
+                                        {
+                                            <a asp-action="Deactivate" asp-route-id="@boy.DeliveryBoyId" class="btn btn-outline-danger" title="Deactivate Agent">
+                                                <i class="cil-user-x"></i>
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <a asp-action="Reactivate" asp-route-id="@boy.DeliveryBoyId" class="btn btn-outline-success" title="Reactivate Agent">
+                                                <i class="cil-action-undo"></i>
+                                            </a>
+                                        }
+                                        <a asp-controller="Compensation" asp-action="Index" asp-route-deliveryBoyId="@boy.DeliveryBoyId" class="btn btn-outline-primary" title="View Monthly Compensation">
+                                            <i class="cil-cash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="cil-bike fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                                <h6 class="fw-semibold">No Delivery Boys Found</h6>
+                                <p class="small mb-3">No field delivery agents match the active filter criteria.</p>
+                                <a asp-action="Index" class="btn btn-sm btn-outline-secondary">Reset Filters</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Footer -->
+        @if (Model.TotalPages > 1)
+        {
+            <div class="card-footer bg-white border-top d-flex align-items-center justify-content-between p-3">
+                <span class="text-muted small">
+                    Showing @(((Model.CurrentPage - 1) * Model.PageSize) + 1) to @(Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalCount)) of @Model.TotalCount agents
+                </span>
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                            <a class="page-link" asp-action="Index"
+                               asp-route-searchTerm="@Model.Criteria.SearchTerm"
+                               asp-route-statusFilter="@Model.Criteria.StatusFilter"
+                               asp-route-compensationType="@Model.Criteria.CompensationType"
+                               asp-route-routeId="@Model.Criteria.RouteId"
+                               asp-route-page="@(Model.CurrentPage - 1)"
+                               asp-route-pageSize="@Model.PageSize">Previous</a>
+                        </li>
+                        @for (int p = 1; p <= Model.TotalPages; p++)
+                        {
+                            <li class="page-item @(p == Model.CurrentPage ? "active" : "")">
+                                <a class="page-link" asp-action="Index"
+                                   asp-route-searchTerm="@Model.Criteria.SearchTerm"
+                                   asp-route-statusFilter="@Model.Criteria.StatusFilter"
+                                   asp-route-compensationType="@Model.Criteria.CompensationType"
+                                   asp-route-routeId="@Model.Criteria.RouteId"
+                                   asp-route-page="@p"
+                                   asp-route-pageSize="@Model.PageSize">@p</a>
+                            </li>
+                        }
+                        <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                            <a class="page-link" asp-action="Index"
+                               asp-route-searchTerm="@Model.Criteria.SearchTerm"
+                               asp-route-statusFilter="@Model.Criteria.StatusFilter"
+                               asp-route-compensationType="@Model.Criteria.CompensationType"
+                               asp-route-routeId="@Model.Criteria.RouteId"
+                               asp-route-page="@(Model.CurrentPage + 1)"
+                               asp-route-pageSize="@Model.PageSize">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>

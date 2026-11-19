@@ -185,7 +185,7 @@ namespace Dairy_Management_System
         private static readonly string[] DeliveryBoyBasePaths =
         {
             "/Home/Privacy",
-            "/DeliveryBoy"
+            "/DailyMilk"
         };
 
         /// <summary>
