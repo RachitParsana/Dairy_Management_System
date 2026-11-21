@@ -1,0 +1,180 @@
+@model Dairy_Management_System.Models.Reports.CustomerAgingReportViewModel
+@{
+    Layout = "_LayoutAdmin";
+    ViewData["Title"] = "Customer Balance Ageing Register";
+    ViewData["ActiveMenu"] = "Reports";
+}
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1 small">
+                <li class="breadcrumb-item"><a href="~/Reports" class="text-decoration-none">Reports Hub</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Customer Ageing</li>
+            </ol>
+        </nav>
+        <h4 class="mb-0 fw-bold text-dark"><i class="cil-clock text-danger me-2"></i>Customer Balance Ageing Register</h4>
+    </div>
+    <div>
+        <a href="~/Reports" class="btn btn-outline-secondary btn-sm">
+            <i class="cil-arrow-left me-1"></i> Back to Reports Hub
+        </a>
+    </div>
+</div>
+
+<!-- Route Filter Card -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-3 p-md-4">
+        <form method="get" asp-controller="Reports" asp-action="CustomerAging" class="row g-3 align-items-end">
+            <div class="col-12 col-md-6 col-lg-4">
+                <label class="form-label small fw-semibold text-secondary">Route Filter</label>
+                <select name="routeId" class="form-select">
+                    <option value="" selected="@(!Model.SelectedRouteId.HasValue)">All Active Routes</option>
+                    @foreach (var r in Model.Routes)
+                    {
+                        <option value="@r.RouteId" selected="@(Model.SelectedRouteId == r.RouteId)">@r.RouteName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-12 col-md-6 col-lg-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="cil-filter me-1"></i> Filter Route
+                </button>
+                <a href="~/Reports/CustomerAging" class="btn btn-outline-secondary" title="Reset filter">
+                    <i class="cil-reload"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Canonical Month-Based Ageing Summary Badges -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-bottom py-3">
+        <h6 class="mb-0 fw-bold text-dark">
+            <i class="cil-calendar me-2 text-secondary"></i>Month-Based Receivables Aggregate Breakdown
+        </h6>
+    </div>
+    <div class="card-body p-3 p-md-4">
+        <div class="row g-3 text-center">
+            <div class="col-6 col-md">
+                <div class="p-3 rounded bg-light border">
+                    <div class="text-muted small fw-medium text-uppercase">1 Mo (Current)</div>
+                    <div class="fw-bold text-dark font-tabular fs-5">₹ @Model.Total1Month.ToString("N2")</div>
+                </div>
+            </div>
+            <div class="col-6 col-md">
+                <div class="p-3 rounded bg-light border">
+                    <div class="text-muted small fw-medium text-uppercase">2 Months</div>
+                    <div class="fw-bold text-dark font-tabular fs-5">₹ @Model.Total2Months.ToString("N2")</div>
+                </div>
+            </div>
+            <div class="col-6 col-md">
+                <div class="p-3 rounded bg-light border">
+                    <div class="text-muted small fw-medium text-uppercase">3 Months</div>
+                    <div class="fw-bold text-dark font-tabular fs-5">₹ @Model.Total3Months.ToString("N2")</div>
+                </div>
+            </div>
+            <div class="col-6 col-md">
+                <div class="p-3 rounded bg-light border">
+                    <div class="text-muted small fw-medium text-uppercase">4–5 Months</div>
+                    <div class="fw-bold text-warning-emphasis font-tabular fs-5">₹ @Model.Total4To5Months.ToString("N2")</div>
+                </div>
+            </div>
+            <div class="col-6 col-md">
+                <div class="p-3 rounded bg-danger bg-opacity-10 border border-danger border-opacity-25">
+                    <div class="text-danger small fw-medium text-uppercase">6+ Months (Critical)</div>
+                    <div class="fw-bold text-danger font-tabular fs-5">₹ @Model.Total6PlusMonths.ToString("N2")</div>
+                </div>
+            </div>
+            <div class="col-12 col-md">
+                <div class="p-3 rounded bg-danger text-white">
+                    <div class="text-white-50 small fw-medium text-uppercase">Grand Total</div>
+                    <div class="fw-bold font-tabular fs-5">₹ @Model.GrandTotalOutstanding.ToString("N2")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Customer Aging Table -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+        <h6 class="mb-0 fw-bold text-dark">
+            <i class="cil-list me-2 text-secondary"></i>Customer Overdue Balances
+        </h6>
+        <span class="badge bg-light text-secondary border font-tabular">@Model.Rows.Count Debtors</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 font-tabular">
+                <thead class="table-light fs-7 text-uppercase text-secondary">
+                    <tr>
+                        <th class="ps-3">Customer</th>
+                        <th>Route</th>
+                        <th>Phone</th>
+                        <th class="text-end">1 Month</th>
+                        <th class="text-end">2 Months</th>
+                        <th class="text-end">3 Months</th>
+                        <th class="text-end">4–5 Mo</th>
+                        <th class="text-end">6+ Mo</th>
+                        <th class="text-end">Outstanding</th>
+                        <th class="text-center pe-3">Unpaid Bills</th>
+                    </tr>
+                </thead>
+                <tbody class="fs-6">
+                    @if (Model.Rows.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="10" class="text-center py-5 text-muted">
+                                <i class="cil-check-circle fs-3 d-block mb-2 text-success"></i>
+                                No customer balance aging balances found. All active customer accounts are fully settled.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var c in Model.Rows)
+                        {
+                            <tr>
+                                <td class="ps-3">
+                                    <div class="fw-semibold text-dark">@c.FullName</div>
+                                    <span class="badge bg-light text-secondary border font-monospace fs-7">@c.CustomerCode</span>
+                                </td>
+                                <td>
+                                    <span class="text-secondary small">@c.RouteName</span>
+                                </td>
+                                <td>
+                                    <span class="text-muted small">@(!string.IsNullOrEmpty(c.Phone) ? c.Phone : "N/A")</span>
+                                </td>
+                                <td class="text-end font-tabular">
+                                    @(c.UnpaidBalance1Month > 0 ? $"₹ {c.UnpaidBalance1Month:N2}" : "-")
+                                </td>
+                                <td class="text-end font-tabular">
+                                    @(c.UnpaidBalance2Months > 0 ? $"₹ {c.UnpaidBalance2Months:N2}" : "-")
+                                </td>
+                                <td class="text-end font-tabular">
+                                    @(c.UnpaidBalance3Months > 0 ? $"₹ {c.UnpaidBalance3Months:N2}" : "-")
+                                </td>
+                                <td class="text-end font-tabular @(c.UnpaidBalance4To5Months > 0 ? "text-warning-emphasis fw-bold" : "")">
+                                    @(c.UnpaidBalance4To5Months > 0 ? $"₹ {c.UnpaidBalance4To5Months:N2}" : "-")
+                                </td>
+                                <td class="text-end font-tabular @(c.UnpaidBalance6PlusMonths > 0 ? "text-danger fw-bold" : "")">
+                                    @(c.UnpaidBalance6PlusMonths > 0 ? $"₹ {c.UnpaidBalance6PlusMonths:N2}" : "-")
+                                </td>
+                                <td class="text-end fw-bold text-danger font-tabular">
+                                    ₹ @c.TotalOutstanding.ToString("N2")
+                                </td>
+                                <td class="text-center pe-3">
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                        @c.UnpaidBillsCount Unpaid
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

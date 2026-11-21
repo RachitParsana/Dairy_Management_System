@@ -1,0 +1,282 @@
+@{
+    Layout = "_LayoutAdmin";
+    ViewData["Title"] = "Export Management Hub";
+    ViewData["ActiveMenu"] = "Exports";
+
+    var routes = ViewBag.Routes as IReadOnlyList<Dairy_Management_System.Models.Route.RouteLookupModel>
+                 ?? Array.Empty<Dairy_Management_System.Models.Route.RouteLookupModel>();
+
+    var currentMonth = DateTime.Today.Month;
+    var currentYear = DateTime.Today.Year;
+    var defaultFromDate = DateTime.Today.AddDays(-30).ToString("yyyy-MM-dd");
+    var defaultToDate = DateTime.Today.ToString("yyyy-MM-dd");
+}
+
+<!-- Export Hub Header -->
+<div class="card border-0 bg-white shadow-sm mb-4">
+    <div class="card-body py-3 px-3 px-md-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle p-2 text-white bg-success d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background-color: #059669 !important;">
+                <i class="cil-cloud-download fs-4"></i>
+            </div>
+            <div>
+                <h5 class="mb-0 fw-bold text-dark">Data Export Management Hub</h5>
+                <div class="text-muted small">RFC 4180 compliant CSV statement downloads with Excel UTF-8 BOM encoding</div>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
+                <i class="cil-shield-alt me-1"></i> Formula Injection Sanitized
+            </span>
+        </div>
+    </div>
+</div>
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+        <i class="cil-warning me-2"></i> @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Security & Compliance Strip -->
+<div class="alert alert-light border shadow-sm mb-4 d-flex align-items-center gap-3 py-3">
+    <div class="text-success fs-3">
+        <i class="cil-lock-locked"></i>
+    </div>
+    <div class="small text-muted flex-grow-1">
+        <strong>Enterprise Security Notice:</strong> All CSV exports are generated dynamically with UTF-8 Byte Order Marks (BOM) for correct regional character rendering, and leading formula trigger symbols (<code class="text-dark">=</code>, <code class="text-dark">+</code>, <code class="text-dark">-</code>, <code class="text-dark">&#64;</code>) are sanitized against spreadsheet formula injection attacks.
+    </div>
+</div>
+
+<!-- 5 Dedicated Export Cards Grid -->
+<div class="row g-4 mb-4">
+    <!-- Card 1: Customers Master Export -->
+    <div class="col-12 col-lg-6 col-xl-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center gap-2">
+                <div class="p-2 bg-success bg-opacity-10 text-success rounded-3">
+                    <i class="cil-people fs-5"></i>
+                </div>
+                <h6 class="mb-0 fw-bold text-dark">1. Customers Master</h6>
+            </div>
+            <div class="card-body p-3 p-md-4 d-flex flex-column">
+                <p class="small text-muted mb-3">
+                    Export complete customer directory including codes, contact numbers, delivery addresses, assigned routes, and outstanding balance snapshots.
+                </p>
+                <form method="get" asp-controller="Export" asp-action="Customers" class="mt-auto">
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold text-secondary">Route Filter</label>
+                        <select name="routeId" class="form-select form-select-sm">
+                            <option value="">All Routes</option>
+                            @foreach (var r in routes)
+                            {
+                                <option value="@r.RouteId">@r.RouteName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Status</label>
+                        <select name="isActive" class="form-select form-select-sm">
+                            <option value="">All Customers</option>
+                            <option value="true" selected>Active Only</option>
+                            <option value="false">Inactive Only</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-sm w-100 fw-medium">
+                        <i class="cil-cloud-download me-1"></i> Download Customers CSV
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 2: Daily Milk Deliveries Export -->
+    <div class="col-12 col-lg-6 col-xl-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center gap-2">
+                <div class="p-2 bg-primary bg-opacity-10 text-primary rounded-3">
+                    <i class="cil-drop fs-5"></i>
+                </div>
+                <h6 class="mb-0 fw-bold text-dark">2. Daily Milk Deliveries</h6>
+            </div>
+            <div class="card-body p-3 p-md-4 d-flex flex-column">
+                <p class="small text-muted mb-3">
+                    Export granular delivery line items with shift, customer code, delivery boy, liquid litres volume, total amount, and delivery status.
+                </p>
+                <form method="get" asp-controller="Export" asp-action="DailyDeliveries" class="mt-auto">
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-secondary">From Date</label>
+                            <input type="date" name="fromDate" value="@defaultFromDate" class="form-control form-control-sm" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-secondary">To Date</label>
+                            <input type="date" name="toDate" value="@defaultToDate" class="form-control form-control-sm" />
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-secondary">Route</label>
+                            <select name="routeId" class="form-select form-select-sm">
+                                <option value="">All Routes</option>
+                                @foreach (var r in routes)
+                                {
+                                    <option value="@r.RouteId">@r.RouteName</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-secondary">Shift</label>
+                            <select name="shift" class="form-select form-select-sm">
+                                <option value="">All Shifts</option>
+                                <option value="Morning">Morning</option>
+                                <option value="Evening">Evening</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100 fw-medium">
+                        <i class="cil-cloud-download me-1"></i> Download Deliveries CSV
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 3: Monthly Bills Statements Export -->
+    <div class="col-12 col-lg-6 col-xl-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center gap-2">
+                <div class="p-2 bg-info bg-opacity-10 text-info rounded-3">
+                    <i class="cil-description fs-5"></i>
+                </div>
+                <h6 class="mb-0 fw-bold text-dark">3. Monthly Bills Ledger</h6>
+            </div>
+            <div class="card-body p-3 p-md-4 d-flex flex-column">
+                <p class="small text-muted mb-3">
+                    Export monthly statements including bill numbers, invoice amounts, paid portions, outstanding balances, and publication timestamps.
+                </p>
+                <form method="get" asp-controller="Export" asp-action="MonthlyBills" class="mt-auto">
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-secondary">Month</label>
+                            <select name="month" class="form-select form-select-sm">
+                                @for (int m = 1; m <= 12; m++)
+                                {
+                                    <option value="@m" selected="@(m == currentMonth)">@(new DateTime(2026, m, 1).ToString("MMMM"))</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-secondary">Year</label>
+                            <input type="number" name="year" value="@currentYear" min="2020" max="2035" class="form-control form-control-sm" />
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-secondary">Status</label>
+                            <select name="paymentStatus" class="form-select form-select-sm">
+                                <option value="">All Statuses</option>
+                                <option value="Unpaid">Unpaid</option>
+                                <option value="Partially Paid">Partially Paid</option>
+                                <option value="Paid">Fully Paid</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-secondary">Route</label>
+                            <select name="routeId" class="form-select form-select-sm">
+                                <option value="">All Routes</option>
+                                @foreach (var r in routes)
+                                {
+                                    <option value="@r.RouteId">@r.RouteName</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-info text-white btn-sm w-100 fw-medium">
+                        <i class="cil-cloud-download me-1"></i> Download Bills CSV
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 4: Payments Ledger Export -->
+    <div class="col-12 col-lg-6 col-xl-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center gap-2">
+                <div class="p-2 bg-warning bg-opacity-10 text-warning-emphasis rounded-3">
+                    <i class="cil-cash fs-5"></i>
+                </div>
+                <h6 class="mb-0 fw-bold text-dark">4. Payments &amp; Receipts</h6>
+            </div>
+            <div class="card-body p-3 p-md-4 d-flex flex-column">
+                <p class="small text-muted mb-3">
+                    Export collections register with receipt numbers, customer codes, payment modes (Cash, Online), received dates, and staff audit metadata.
+                </p>
+                <form method="get" asp-controller="Export" asp-action="Payments" class="mt-auto">
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-secondary">From Date</label>
+                            <input type="date" name="fromDate" value="@defaultFromDate" class="form-control form-control-sm" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-secondary">To Date</label>
+                            <input type="date" name="toDate" value="@defaultToDate" class="form-control form-control-sm" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Payment Mode</label>
+                        <select name="paymentMode" class="form-select form-select-sm">
+                            <option value="">All Modes</option>
+                            <option value="Cash">Cash Only</option>
+                            <option value="Online">Online / UPI Only</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-warning text-dark btn-sm w-100 fw-medium">
+                        <i class="cil-cloud-download me-1"></i> Download Payments CSV
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 5: Delivery Boy Compensation Export -->
+    <div class="col-12 col-lg-6 col-xl-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center gap-2">
+                <div class="p-2 bg-secondary bg-opacity-10 text-secondary rounded-3">
+                    <i class="cil-wallet fs-5"></i>
+                </div>
+                <h6 class="mb-0 fw-bold text-dark">5. Partner Compensation</h6>
+            </div>
+            <div class="card-body p-3 p-md-4 d-flex flex-column">
+                <p class="small text-muted mb-3">
+                    Export monthly delivery partner compensation summaries including fixed base salaries, commission totals, adjustments, and net payout statuses.
+                </p>
+                <form method="get" asp-controller="Export" asp-action="Compensation" class="mt-auto">
+                    <div class="row g-2 mb-4">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-secondary">Month</label>
+                            <select name="month" class="form-select form-select-sm">
+                                @for (int m = 1; m <= 12; m++)
+                                {
+                                    <option value="@m" selected="@(m == currentMonth)">@(new DateTime(2026, m, 1).ToString("MMMM"))</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold text-secondary">Year</label>
+                            <input type="number" name="year" value="@currentYear" min="2020" max="2035" class="form-control form-control-sm" />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-secondary btn-sm w-100 fw-medium">
+                        <i class="cil-cloud-download me-1"></i> Download Compensation CSV
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

@@ -46,6 +46,38 @@ namespace Dairy_Management_System.Controllers
 
         #endregion
 
+        #region Delivery Boy Customer Roster
+
+        /// <summary>
+        /// Displays the Delivery Boy's assigned active customer roster ordered by delivery sequence.
+        /// Exclusively for authenticated DeliveryBoy role, identity resolved from claims.
+        /// </summary>
+        [HttpGet]
+        [Authorize(Roles = "DeliveryBoy")]
+        public async Task<IActionResult> MyCustomers(CancellationToken cancellationToken)
+        {
+            int userId = GetCurrentUserId();
+            if (userId <= 0)
+            {
+                _logger.LogWarning("MyCustomers accessed without valid DeliveryBoy claims identity.");
+                return RedirectToAction("DeliveryBoyLogin", "Auth");
+            }
+
+            try
+            {
+                var roster = await _dailyMilkService.GetAssignedCustomersRosterAsync(userId, cancellationToken).ConfigureAwait(false);
+                return View(roster);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to retrieve assigned customers roster for UserId: {UserId}", userId);
+                TempData["ErrorMessage"] = "Unable to load assigned customer roster at this time.";
+                return View(Array.Empty<Dairy_Management_System.Models.DeliveryBoy.DeliveryBoyCustomerRosterItemViewModel>());
+            }
+        }
+
+        #endregion
+
         #region Delivery Boy Runsheet & Entry Portal
 
         /// <summary>

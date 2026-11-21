@@ -1,0 +1,236 @@
+@model Dairy_Management_System.Models.DeliveryBoy.DeliveryBoyDetailsDto
+@{
+    Layout = "_LayoutDeliveryBoy";
+    ViewData["Title"] = "My Partner Profile";
+}
+
+<div class="container-fluid px-3 py-3">
+    <!-- Breadcrumb & Header -->
+    <div class="row mb-3 align-items-center">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 text-muted fs-7">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Privacy" class="text-decoration-none text-primary">Portal</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">My Profile</li>
+                </ol>
+            </nav>
+            <h2 class="h4 fw-bold text-dark mb-1">
+                <i class="cil-user text-primary me-2"></i>Delivery Partner Profile
+            </h2>
+            <p class="text-muted small mb-0">
+                Official registration details, route assignments, vehicle information, and compensation summary.
+            </p>
+        </div>
+    </div>
+
+    <!-- Feedback Alerts -->
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 mb-3" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="cil-warning fs-5 me-2"></i>
+                <div class="small fw-semibold">@TempData["ErrorMessage"]</div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Profile Overview Card -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4 bg-primary text-white">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center shadow-sm" style="width: 72px; height: 72px; font-size: 1.8rem; font-weight: bold;">
+                        @(string.IsNullOrWhiteSpace(Model.FullName) ? "D" : Model.FullName.Substring(0, 1).ToUpperInvariant())
+                    </div>
+                </div>
+                <div class="col">
+                    <h3 class="h4 fw-bold mb-1">@Model.FullName</h3>
+                    <div class="d-flex flex-wrap gap-2 align-items-center small opacity-90">
+                        <span><i class="cil-user me-1"></i>@@@Model.Username</span>
+                        <span>&bull;</span>
+                        <span><i class="cil-phone me-1"></i>@Model.Phone</span>
+                        <span>&bull;</span>
+                        <span class="badge bg-white text-primary fw-semibold">
+                            <i class="cil-map me-1"></i>@(string.IsNullOrWhiteSpace(Model.RouteName) ? "Unassigned Route" : $"{Model.RouteName} ({Model.RouteCode})")
+                        </span>
+                    </div>
+                </div>
+                <div class="col-auto text-end mt-3 mt-md-0">
+                    <span class="badge @(Model.IsActive ? "bg-success" : "bg-danger") px-3 py-2 rounded-pill fs-7">
+                        @(Model.IsActive ? "Active Partner" : "Inactive")
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Left Column: Registration & Route Info -->
+        <div class="col-lg-5">
+            <!-- Assignment & Vehicle Info -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="cil-truck text-primary me-2"></i>Operational Assignment
+                    </h6>
+                </div>
+                <div class="card-body p-3">
+                    <ul class="list-group list-group-flush small">
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                            <span class="text-muted">Primary Route</span>
+                            <span class="fw-bold text-dark">@(string.IsNullOrWhiteSpace(Model.RouteName) ? "None" : Model.RouteName)</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                            <span class="text-muted">Route Code</span>
+                            <span class="fw-semibold text-secondary">@(string.IsNullOrWhiteSpace(Model.RouteCode) ? "N/A" : Model.RouteCode)</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                            <span class="text-muted">Registered Vehicle Number</span>
+                            <span class="fw-bold text-dark">@(string.IsNullOrWhiteSpace(Model.VehicleNumber) ? "Not Specified" : Model.VehicleNumber)</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                            <span class="text-muted">Assigned Customers</span>
+                            <span class="badge bg-primary rounded-pill">@Model.AssignedCustomers.Count Customers</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                            <span class="text-muted">Member Since</span>
+                            <span class="text-dark">@Model.CreatedAt.ToString("dd MMM yyyy")</span>
+                        </li>
+                    </ul>
+
+                    <div class="mt-3">
+                        <a asp-controller="DailyMilk" asp-action="MyCustomers" class="btn btn-outline-primary btn-sm w-100">
+                            <i class="cil-people me-1"></i> View Route Customer Roster
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Compensation Structure Card -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="cil-wallet text-primary me-2"></i>Compensation Structure
+                    </h6>
+                </div>
+                <div class="card-body p-3">
+                    <div class="p-3 bg-light rounded-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted small">Package Model</span>
+                            <span class="badge bg-dark">@Model.CompensationType</span>
+                        </div>
+                        @if (Model.CompensationType == "Commission")
+                        {
+                            <div class="d-flex justify-content-between align-items-baseline">
+                                <span class="text-muted small">Active Commission Rate</span>
+                                <span class="fs-5 fw-bold text-success">₹@Model.CurrentCommissionRate.ToString("N2") <span class="fs-7 text-muted fw-normal">/ Litre</span></span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="d-flex justify-content-between align-items-baseline">
+                                <span class="text-muted small">Base Monthly Salary</span>
+                                <span class="fs-5 fw-bold text-primary">₹@Model.MonthlyBaseSalary.ToString("N2")</span>
+                            </div>
+                        }
+                    </div>
+
+                    @if (Model.CommissionRateHistory.Any())
+                    {
+                        <h6 class="fw-semibold text-secondary small mb-2">Effective Rate History</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-borderless text-muted small mb-0">
+                                <thead class="border-bottom">
+                                    <tr>
+                                        <th>Rate</th>
+                                        <th>From</th>
+                                        <th>To</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var tier in Model.CommissionRateHistory)
+                                    {
+                                        <tr>
+                                            <td class="fw-bold text-dark">₹@tier.CommissionRatePerLitre.ToString("N2")</td>
+                                            <td>@tier.EffectiveFrom.ToString("dd MMM yy")</td>
+                                            <td>@(tier.EffectiveTo.HasValue ? tier.EffectiveTo.Value.ToString("dd MMM yy") : "Active")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Recent Compensation Records -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="cil-history text-primary me-2"></i>Recent Monthly Compensation Statements
+                    </h6>
+                    <span class="badge bg-light text-secondary">Verified Records</span>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.RecentCompensations == null || !Model.RecentCompensations.Any())
+                    {
+                        <div class="p-4 text-center text-muted">
+                            <i class="cil-info fs-3 d-block mb-2 text-secondary"></i>
+                            <p class="mb-0 small">No monthly compensation statements generated yet.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0 small">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Period</th>
+                                        <th>Type</th>
+                                        <th class="text-end">Litres</th>
+                                        <th class="text-end">Net Payable</th>
+                                        <th class="text-center">Status</th>
+                                        <th>Payment Ref</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var comp in Model.RecentCompensations)
+                                    {
+                                        <tr>
+                                            <td class="fw-semibold text-dark">
+                                                @(new DateTime(comp.Year, comp.Month, 1).ToString("MMM yyyy"))
+                                            </td>
+                                            <td><span class="badge bg-light text-dark">@comp.CompensationType</span></td>
+                                            <td class="text-end">@comp.EligibleCompletedLitres.ToString("N1") L</td>
+                                            <td class="text-end fw-bold text-success">₹@comp.NetPayableAmount.ToString("N2")</td>
+                                            <td class="text-center">
+                                                @if (comp.Status == "Paid")
+                                                {
+                                                    <span class="badge bg-success">Paid</span>
+                                                }
+                                                else if (comp.Status == "Finalized")
+                                                {
+                                                    <span class="badge bg-info text-dark">Finalized</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning text-dark">@comp.Status</span>
+                                                }
+                                            </td>
+                                            <td class="text-muted small">
+                                                @(string.IsNullOrWhiteSpace(comp.PaymentReference) ? "—" : comp.PaymentReference)
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

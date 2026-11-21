@@ -183,6 +183,9 @@ namespace Dairy_Management_System
                 app.UseHsts();
             }
 
+            // Centralized status code execution handling (e.g. 404 Not Found, 403 Forbidden)
+            app.UseStatusCodePagesWithReExecute("/Home/Error", "?statusCode={0}");
+
             app.UseHttpsRedirection();
             app.UseRouting();
 
@@ -212,7 +215,10 @@ namespace Dairy_Management_System
         private static readonly string[] DeliveryBoyBasePaths =
         {
             "/Home/Privacy",
-            "/DailyMilk"
+            "/DailyMilk",
+            "/Notification/DeliveryBoyNotifications",
+            "/Settings/DeliveryBoySettings",
+            "/Settings/Profile"
         };
 
         /// <summary>

@@ -1,0 +1,291 @@
+@model Dairy_Management_System.Models.Reports.ReportsHubViewModel
+@{
+    Layout = "_LayoutAdmin";
+    ViewData["Title"] = "Reports & Analytics Hub";
+    ViewData["ActiveMenu"] = "Reports";
+}
+
+<!-- Reports Hub Header -->
+<div class="card border-0 bg-white shadow-sm mb-4">
+    <div class="card-body py-3 px-3 px-md-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle p-2 text-white bg-success d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background-color: #059669 !important;">
+                <i class="cil-chart-line fs-4"></i>
+            </div>
+            <div>
+                <h5 class="mb-0 fw-bold text-dark">Centralized Analytics &amp; Reports</h5>
+                <div class="text-muted small">Financial billing settlements, route milk consumption, and customer ageing</div>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <div class="btn-group" role="group" aria-label="Trend Window">
+                <a href="~/Reports?months=3" class="btn btn-sm @(Model.Months == 3 ? "btn-success" : "btn-outline-secondary")">3 Mo</a>
+                <a href="~/Reports?months=6" class="btn btn-sm @(Model.Months == 6 ? "btn-success" : "btn-outline-secondary")">6 Mo</a>
+                <a href="~/Reports?months=12" class="btn btn-sm @(Model.Months == 12 ? "btn-success" : "btn-outline-secondary")">12 Mo</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Primary Metric Badges Row -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-3">
+                <span class="text-muted small fw-semibold text-uppercase d-block mb-1">Invoiced in Period</span>
+                <h4 class="fw-bold text-dark font-tabular mb-1">₹ @Model.TotalInvoicedInPeriod.ToString("N2")</h4>
+                <div class="text-muted small">Last @Model.Months Calendar Months</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-3">
+                <span class="text-muted small fw-semibold text-uppercase d-block mb-1">Total Collected</span>
+                <h4 class="fw-bold text-success font-tabular mb-1">₹ @Model.TotalCollectedInPeriod.ToString("N2")</h4>
+                <div class="text-muted small">Net cash &amp; online credits</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-3">
+                <span class="text-muted small fw-semibold text-uppercase d-block mb-1">Average Efficiency</span>
+                <h4 class="fw-bold text-primary font-tabular mb-1">@Model.AverageCollectionEfficiency.ToString("F1")%</h4>
+                <div class="text-muted small">Settlement conversion rate</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-3">
+                <span class="text-muted small fw-semibold text-uppercase d-block mb-1">Total Outstanding</span>
+                <h4 class="fw-bold text-danger font-tabular mb-1">₹ @Model.TotalOutstandingReceivables.ToString("N2")</h4>
+                <div class="text-muted small">Active customer balances</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js Visualization Row -->
+<div class="row g-4 mb-4">
+    <!-- Chart 1: Monthly Billing vs Collection Trend -->
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+                <h6 class="mb-0 fw-bold text-dark">
+                    <i class="cil-chart text-success me-2"></i>Monthly Billing vs Collections Trend
+                </h6>
+                <span class="badge bg-light text-secondary border font-tabular">@Model.MonthlyTrends.Count Months Data</span>
+            </div>
+            <div class="card-body p-3 p-md-4">
+                <div style="height: 280px; position: relative;">
+                    <canvas id="monthlyBillingVsCollectionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 2: Route Milk Volume Distribution -->
+    <div class="col-12 col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+                <h6 class="mb-0 fw-bold text-dark">
+                    <i class="cil-map text-primary me-2"></i>Route Volume Share
+                </h6>
+                <span class="badge bg-light text-secondary border font-tabular">Last 30 Days</span>
+            </div>
+            <div class="card-body p-3 p-md-4">
+                <div style="height: 240px; position: relative;">
+                    <canvas id="routeDistributionChart"></canvas>
+                </div>
+                <div class="text-muted small text-center mt-3">
+                    Volume distribution across operational routes
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Reports Quick Navigation Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-4 d-flex flex-column">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="p-2 bg-primary bg-opacity-10 text-primary rounded-3">
+                        <i class="cil-drop fs-4"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0">Daily Milk Consumption</h6>
+                        <small class="text-muted">Shift &amp; Category Ledger</small>
+                    </div>
+                </div>
+                <p class="small text-muted mb-4 flex-grow-1">
+                    Inspect daily volumes dispatched per category (Cow, Buffalo) and shift (Morning, Evening) across custom date ranges.
+                </p>
+                <a href="~/Reports/DailyMilk" class="btn btn-outline-primary btn-sm fw-medium">
+                    View Daily Milk Report &rarr;
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-4 d-flex flex-column">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="p-2 bg-danger bg-opacity-10 text-danger rounded-3">
+                        <i class="cil-clock fs-4"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0">Customer Balance Ageing</h6>
+                        <small class="text-muted">Month-Based Unpaid Buckets</small>
+                    </div>
+                </div>
+                <p class="small text-muted mb-4 flex-grow-1">
+                    Authoritative customer aging register tracking unpaid invoice debts across canonical buckets: 1 mo, 2 mo, 3 mo, 4–5 mo, and 6+ mo.
+                </p>
+                <a href="~/Reports/CustomerAging" class="btn btn-outline-danger btn-sm fw-medium">
+                    View Customer Aging Register &rarr;
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-4 d-flex flex-column">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="p-2 bg-success bg-opacity-10 text-success rounded-3">
+                        <i class="cil-cloud-download fs-4"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0">Export Management Hub</h6>
+                        <small class="text-muted">RFC 4180 CSV Downloads</small>
+                    </div>
+                </div>
+                <p class="small text-muted mb-4 flex-grow-1">
+                    Download sanitized, UTF-8 BOM CSV statements for customers, daily deliveries, monthly bills, payments, and compensation.
+                </p>
+                <a href="~/Export" class="btn btn-outline-success btn-sm fw-medium">
+                    Open Export Hub &rarr;
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (typeof Chart === 'undefined') {
+                console.warn('Chart.js library is not loaded. Displaying graceful fallback.');
+                const chartCanvases = [document.getElementById('monthlyBillingVsCollectionChart'), document.getElementById('routeDistributionChart')];
+                chartCanvases.forEach(function (canvas) {
+                    if (canvas && canvas.parentElement) {
+                        canvas.parentElement.innerHTML = '<div class="text-center text-muted py-5 small"><i class="cil-chart-line fs-3 d-block mb-2 text-secondary"></i>Analytics chart unavailable (CDN offline). Summary metrics and report registers are accessible below.</div>';
+                    }
+                });
+                return;
+            }
+
+            // Chart 1: Monthly Billing vs Collection Trend
+            const trendCtx = document.getElementById('monthlyBillingVsCollectionChart');
+            if (trendCtx) {
+                const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyTrends.Select(t => $"{t.MonthName} {t.BillingYear}").ToList()));
+                const invoicedData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyTrends.Select(t => t.InvoicedAmount).ToList()));
+                const collectedData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyTrends.Select(t => t.CollectedAmount).ToList()));
+
+                new Chart(trendCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Invoiced Amount (₹)',
+                                data: invoicedData,
+                                backgroundColor: 'rgba(5, 150, 105, 0.75)',
+                                borderColor: '#059669',
+                                borderWidth: 1.5,
+                                borderRadius: 4
+                            },
+                            {
+                                label: 'Collected Amount (₹)',
+                                data: collectedData,
+                                backgroundColor: 'rgba(37, 99, 235, 0.75)',
+                                borderColor: '#2563eb',
+                                borderWidth: 1.5,
+                                borderRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'top' },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': ₹ ' + context.parsed.y.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(val) { return '₹ ' + val.toLocaleString('en-IN'); }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Chart 2: Route Milk Distribution
+            const routeCtx = document.getElementById('routeDistributionChart');
+            if (routeCtx) {
+                const routeLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RouteConsumptions.Select(r => r.RouteName).ToList()));
+                const routeData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RouteConsumptions.Select(r => r.TotalLiquidVolumeLitres).ToList()));
+                const hasRouteData = routeData.length > 0 && routeData.some(v => v > 0);
+
+                new Chart(routeCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: hasRouteData ? routeLabels : ['No Activity'],
+                        datasets: [{
+                            data: hasRouteData ? routeData : [1],
+                            backgroundColor: hasRouteData
+                                ? ['rgba(5, 150, 105, 0.85)', 'rgba(37, 99, 235, 0.85)', 'rgba(245, 158, 11, 0.85)', 'rgba(147, 51, 234, 0.85)']
+                                : ['rgba(209, 213, 219, 0.5)'],
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '65%',
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(ctx) {
+                                        return hasRouteData
+                                            ? ctx.label + ': ' + ctx.parsed.toFixed(2) + ' L'
+                                            : 'No route consumption recorded in period';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+}

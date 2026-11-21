@@ -1,0 +1,243 @@
+@model IReadOnlyList<Dairy_Management_System.Models.DeliveryBoy.DeliveryBoyCustomerRosterItemViewModel>
+@{
+    Layout = "_LayoutDeliveryBoy";
+    ViewData["Title"] = "My Route Customers";
+}
+
+<div class="container-fluid px-3 py-3">
+    <!-- Header & Breadcrumb -->
+    <div class="row mb-3 align-items-center">
+        <div class="col-md-7">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 text-muted fs-7">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Privacy" class="text-decoration-none text-primary">Portal</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">My Customers</li>
+                </ol>
+            </nav>
+            <h2 class="h4 fw-bold text-dark mb-1">
+                <i class="cil-people text-primary me-2"></i>My Route Customer Roster
+            </h2>
+            <p class="text-muted small mb-0">
+                Ordered sequentially by delivery stop. Includes contact numbers, landmarks, and subscription details.
+            </p>
+        </div>
+        <div class="col-md-5 text-md-end mt-3 mt-md-0">
+            <span class="badge bg-primary px-3 py-2 rounded-pill fs-7 shadow-sm">
+                <i class="cil-user me-1"></i> @(Model?.Count ?? 0) Assigned Customers
+            </span>
+        </div>
+    </div>
+
+    <!-- Alert / Feedback -->
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 mb-3" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="cil-warning fs-5 me-2"></i>
+                <div class="small fw-semibold">@TempData["ErrorMessage"]</div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Search & Filter Controls -->
+    <div class="card border-0 shadow-sm rounded-3 mb-3">
+        <div class="card-body p-3">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0">
+                            <i class="cil-search text-muted"></i>
+                        </span>
+                        <input type="text" id="rosterSearchInput" class="form-control border-start-0 bg-light" placeholder="Search by name, code, phone, address, or landmark..." />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex flex-wrap gap-2 justify-content-md-end">
+                        <button type="button" class="btn btn-sm btn-primary active roster-filter-btn" data-filter="all">
+                            All (@(Model?.Count ?? 0))
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary roster-filter-btn" data-filter="morning">
+                            Morning (@(Model?.Count(c => c.ShiftPreference?.Equals("Morning", StringComparison.OrdinalIgnoreCase) == true) ?? 0))
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary roster-filter-btn" data-filter="evening">
+                            Evening (@(Model?.Count(c => c.ShiftPreference?.Equals("Evening", StringComparison.OrdinalIgnoreCase) == true) ?? 0))
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-warning roster-filter-btn" data-filter="vacation">
+                            On Vacation (@(Model?.Count(c => c.IsOnVacationToday) ?? 0))
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Roster Grid -->
+    @if (Model == null || !Model.Any())
+    {
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-body p-5 text-center text-muted">
+                <i class="cil-user-x fs-1 d-block mb-3 text-secondary"></i>
+                <h5 class="fw-bold text-dark mb-1">No Customers Assigned</h5>
+                <p class="small text-muted mb-0">
+                    You currently have no active customers assigned to your route. Please contact your dispatch supervisor.
+                </p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3" id="customerRosterContainer">
+            @foreach (var cust in Model)
+            {
+                <div class="col-12 col-md-6 col-xl-4 customer-roster-item"
+                     data-search="@cust.FullName.ToLowerInvariant() @cust.CustomerCode.ToLowerInvariant() @cust.Phone @cust.Address.ToLowerInvariant() @cust.Area.ToLowerInvariant() @cust.Landmark.ToLowerInvariant()"
+                     data-shift="@(cust.ShiftPreference?.ToLowerInvariant() ?? "")"
+                     data-vacation="@(cust.IsOnVacationToday ? "true" : "false")">
+                    <div class="card h-100 border-0 shadow-sm rounded-3 @(cust.IsOnVacationToday ? "border-start border-4 border-warning bg-light-subtle" : "border-start border-4 border-primary")">
+                        <div class="card-body p-3">
+                            <!-- Stop Sequence & Vacation Badge -->
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="badge @(cust.IsOnVacationToday ? "bg-warning text-dark" : "bg-primary") fw-bold px-2 py-1">
+                                    Stop #@cust.DeliverySequence
+                                </span>
+                                @if (cust.IsOnVacationToday)
+                                {
+                                    <span class="badge bg-warning text-dark border border-warning-subtle">
+                                        <i class="cil-beach-access me-1"></i> Vacation Today
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-light text-secondary border">
+                                        @(string.IsNullOrWhiteSpace(cust.ShiftPreference) ? "Any Shift" : $"{cust.ShiftPreference} Shift")
+                                    </span>
+                                }
+                            </div>
+
+                            <!-- Customer Name & Code -->
+                            <h5 class="h6 fw-bold text-dark mb-1">@cust.FullName</h5>
+                            <div class="text-muted small mb-2">
+                                <code>@cust.CustomerCode</code> &bull; <a href="tel:@cust.Phone" class="text-decoration-none text-primary fw-semibold"><i class="cil-phone me-1"></i>@cust.Phone</a>
+                            </div>
+
+                            <!-- Address & Landmark -->
+                            <div class="p-2 bg-light rounded-2 mb-2 small text-secondary">
+                                <div class="text-dark fw-medium mb-1">
+                                    <i class="cil-location-pin text-danger me-1"></i>
+                                    @(string.IsNullOrWhiteSpace(cust.Address) ? "Address not specified" : cust.Address)
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(cust.Landmark))
+                                {
+                                    <div class="text-muted small">
+                                        <i class="cil-flag text-warning me-1"></i> Landmark: @cust.Landmark
+                                    </div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(cust.Area))
+                                {
+                                    <div class="text-muted small">
+                                        <i class="cil-map me-1"></i> Area: @cust.Area
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Subscription Info -->
+                            <div class="d-flex justify-content-between align-items-center small mb-3">
+                                <span class="text-muted">Subscription:</span>
+                                <span class="fw-bold text-dark">
+                                    @(string.IsNullOrWhiteSpace(cust.CategoryName) ? "Standard Milk" : cust.CategoryName) &bull;
+                                    <span class="text-success">@cust.DailyQuantity.ToString("G29") @(string.IsNullOrWhiteSpace(cust.Unit) ? "L" : cust.Unit)/day</span>
+                                </span>
+                            </div>
+
+                            <!-- Quick Action Buttons -->
+                            <div class="d-flex gap-2">
+                                <a href="tel:@cust.Phone" class="btn btn-outline-success btn-sm flex-fill py-1">
+                                    <i class="cil-phone me-1"></i> Call
+                                </a>
+                                <a asp-controller="DailyMilk" asp-action="Index" asp-route-shift="@cust.ShiftPreference" class="btn btn-outline-primary btn-sm flex-fill py-1">
+                                    <i class="cil-notes me-1"></i> Runsheet
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div id="noResultsMessage" class="card border-0 shadow-sm rounded-3 d-none mt-3">
+            <div class="card-body p-4 text-center text-muted">
+                <i class="cil-search fs-2 d-block mb-2 text-secondary"></i>
+                <p class="mb-0 small">No matching customers found for your search filter.</p>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('rosterSearchInput');
+            const filterButtons = document.querySelectorAll('.roster-filter-btn');
+            const items = document.querySelectorAll('.customer-roster-item');
+            const noResults = document.getElementById('noResultsMessage');
+
+            let currentFilter = 'all';
+
+            function applyFilters() {
+                const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+                let visibleCount = 0;
+
+                items.forEach(function (item) {
+                    const searchData = item.getAttribute('data-search') || '';
+                    const shiftData = item.getAttribute('data-shift') || '';
+                    const isVacation = item.getAttribute('data-vacation') === 'true';
+
+                    const matchesQuery = query === '' || searchData.includes(query);
+
+                    let matchesFilter = true;
+                    if (currentFilter === 'morning') {
+                        matchesFilter = shiftData.includes('morning');
+                    } else if (currentFilter === 'evening') {
+                        matchesFilter = shiftData.includes('evening');
+                    } else if (currentFilter === 'vacation') {
+                        matchesFilter = isVacation;
+                    }
+
+                    if (matchesQuery && matchesFilter) {
+                        item.classList.remove('d-none');
+                        visibleCount++;
+                    } else {
+                        item.classList.add('d-none');
+                    }
+                });
+
+                if (noResults) {
+                    if (visibleCount === 0 && items.length > 0) {
+                        noResults.classList.remove('d-none');
+                    } else {
+                        noResults.classList.add('d-none');
+                    }
+                }
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener('input', applyFilters);
+            }
+
+            filterButtons.forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    filterButtons.forEach(b => {
+                        b.classList.remove('btn-primary', 'active');
+                        b.classList.add('btn-outline-secondary');
+                    });
+                    btn.classList.remove('btn-outline-secondary');
+                    btn.classList.add('btn-primary', 'active');
+
+                    currentFilter = btn.getAttribute('data-filter') || 'all';
+                    applyFilters();
+                });
+            });
+        });
+    </script>
+}

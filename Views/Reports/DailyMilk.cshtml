@@ -1,0 +1,150 @@
+@model Dairy_Management_System.Models.Reports.DailyMilkReportFilterViewModel
+@{
+    Layout = "_LayoutAdmin";
+    ViewData["Title"] = "Daily Milk Consumption Report";
+    ViewData["ActiveMenu"] = "Reports";
+}
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1 small">
+                <li class="breadcrumb-item"><a href="~/Reports" class="text-decoration-none">Reports Hub</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Daily Milk Consumption</li>
+            </ol>
+        </nav>
+        <h4 class="mb-0 fw-bold text-dark"><i class="cil-drop text-primary me-2"></i>Daily Milk Consumption Report</h4>
+    </div>
+    <div>
+        <a href="~/Reports" class="btn btn-outline-secondary btn-sm">
+            <i class="cil-arrow-left me-1"></i> Back to Reports Hub
+        </a>
+    </div>
+</div>
+
+<!-- Filter Card -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-3 p-md-4">
+        <form method="get" asp-controller="Reports" asp-action="DailyMilk" class="row g-3 align-items-end">
+            <div class="col-12 col-sm-6 col-md-3">
+                <label class="form-label small fw-semibold text-secondary">From Date</label>
+                <input type="date" name="fromDate" value="@Model.FromDate.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-12 col-sm-6 col-md-3">
+                <label class="form-label small fw-semibold text-secondary">To Date</label>
+                <input type="date" name="toDate" value="@Model.ToDate.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-12 col-sm-6 col-md-3">
+                <label class="form-label small fw-semibold text-secondary">Shift Filter</label>
+                <select name="shift" class="form-select">
+                    <option value="" selected="@(string.IsNullOrEmpty(Model.Shift))">All Shifts</option>
+                    <option value="Morning" selected="@(Model.Shift == "Morning")">Morning Shift</option>
+                    <option value="Evening" selected="@(Model.Shift == "Evening")">Evening Shift</option>
+                </select>
+            </div>
+            <div class="col-12 col-sm-6 col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="cil-filter me-1"></i> Apply Filter
+                </button>
+                <a href="~/Reports/DailyMilk" class="btn btn-outline-secondary" title="Reset filter">
+                    <i class="cil-reload"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Summary Row -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-3 text-center">
+                <div class="text-muted small fw-semibold text-uppercase">Total Quantity</div>
+                <h3 class="fw-bold text-primary font-tabular mb-0">@Model.TotalQuantity.ToString("N2") <span class="fs-6 text-muted">L</span></h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-3 text-center">
+                <div class="text-muted small fw-semibold text-uppercase">Total Monetary Value</div>
+                <h3 class="fw-bold text-success font-tabular mb-0">₹ @Model.TotalAmount.ToString("N2")</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-sm-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-3 text-center">
+                <div class="text-muted small fw-semibold text-uppercase">Breakdown Entries</div>
+                <h3 class="fw-bold text-dark font-tabular mb-0">@Model.Rows.Count</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabular Report Card -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+        <h6 class="mb-0 fw-bold text-dark">
+            <i class="cil-list me-2 text-secondary"></i>Category &amp; Shift Dispatches
+        </h6>
+        <span class="badge bg-light text-secondary border font-tabular">
+            @Model.FromDate.ToString("MMM dd") - @Model.ToDate.ToString("MMM dd, yyyy")
+        </span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 font-tabular">
+                <thead class="table-light fs-7 text-uppercase text-secondary">
+                    <tr>
+                        <th class="ps-3">Date</th>
+                        <th>Shift</th>
+                        <th>Category</th>
+                        <th>Unit</th>
+                        <th class="text-end">Delivered Qty</th>
+                        <th class="text-end pe-3">Monetary Amount</th>
+                    </tr>
+                </thead>
+                <tbody class="fs-6">
+                    @if (Model.Rows.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="cil-info fs-3 d-block mb-2 text-secondary"></i>
+                                No daily milk delivery records found for the selected period and filters.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var row in Model.Rows)
+                        {
+                            <tr>
+                                <td class="ps-3 fw-semibold text-dark">
+                                    @row.EntryDate.ToString("yyyy-MM-dd")
+                                </td>
+                                <td>
+                                    <span class="badge @(row.Shift == "Morning" ? "bg-primary-subtle text-primary border border-primary-subtle" : "bg-warning-subtle text-warning-emphasis border border-warning-subtle")">
+                                        @row.Shift
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="fw-medium text-dark">@row.CategoryName</span>
+                                </td>
+                                <td>
+                                    <span class="text-muted small">@row.Unit</span>
+                                </td>
+                                <td class="text-end fw-bold text-primary">
+                                    @row.DeliveredQuantity.ToString("N2")
+                                </td>
+                                <td class="text-end pe-3 fw-bold text-dark">
+                                    ₹ @row.TotalMonetaryAmount.ToString("N2")
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

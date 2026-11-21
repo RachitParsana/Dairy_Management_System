@@ -1,4 +1,5 @@
 @using System.Security.Claims
+@inject Dairy_Management_System.Services.INotificationService NotificationService
 @{
     var dbUsername = User.Identity?.Name ?? "DeliveryBoy";
     var dbFullName = User.FindFirst(ClaimTypes.GivenName)?.Value;
@@ -8,6 +9,22 @@
     var dbInitials = !string.IsNullOrWhiteSpace(dbDisplayName)
         ? (dbDisplayName.Length >= 2 ? dbDisplayName.Substring(0, 2).ToUpper() : dbDisplayName.ToUpper())
         : "DB";
+
+    int dbUnreadAlertsCount = 0;
+    IReadOnlyList<Dairy_Management_System.Models.Notification.NotificationListItemDto> dbRecentAlerts = Array.Empty<Dairy_Management_System.Models.Notification.NotificationListItemDto>();
+    try
+    {
+        var dbUserIdInt = int.TryParse(dbUserId, out var parsedId) ? parsedId : 0;
+        if (dbUserIdInt > 0)
+        {
+            dbRecentAlerts = await NotificationService.GetUserNotificationsAsync(dbUserIdInt, "DeliveryBoy", null, null);
+            dbUnreadAlertsCount = dbRecentAlerts.Count(n => !n.IsAcknowledged);
+        }
+    }
+    catch
+    {
+        // Safe fallback
+    }
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -50,7 +67,7 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "MyCustomers" ? "active" : "")" href="#my-customers">
+                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "MyCustomers" ? "active" : "")" href="~/DailyMilk/MyCustomers">
                     <i class="nav-icon cil-people"></i> My Customers
                 </a>
             </li>
@@ -60,22 +77,22 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "Notifications" ? "active" : "")" href="#notifications">
+                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "Notifications" ? "active" : "")" href="~/Notification/DeliveryBoyNotifications">
                     <i class="nav-icon cil-bell"></i> Notifications
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "Settings" ? "active" : "")" href="#settings">
+                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "Settings" ? "active" : "")" href="~/Settings/DeliveryBoySettings">
                     <i class="nav-icon cil-settings"></i> Settings
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "Help" ? "active" : "")" href="#help-support">
+                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "Help" ? "active" : "")" href="~/HelpSupport">
                     <i class="nav-icon cil-info"></i> Help &amp; Support
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "Profile" ? "active" : "")" href="#profile">
+                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "Profile" ? "active" : "")" href="~/Settings/Profile">
                     <i class="nav-icon cil-user"></i> Profile
                 </a>
             </li>
@@ -116,14 +133,48 @@
                     <div class="dropdown">
                         <button class="btn btn-link text-secondary p-1 position-relative text-decoration-none" type="button" data-coreui-toggle="dropdown" aria-expanded="false" title="Notifications">
                             <i class="cil-bell fs-5"></i>
+                            @if (dbUnreadAlertsCount > 0)
+                            {
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary" style="font-size: 0.65rem;">
+                                    @(dbUnreadAlertsCount > 9 ? "9+" : dbUnreadAlertsCount.ToString())
+                                </span>
+                            }
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" style="min-width: 270px;">
-                            <li class="dropdown-header fw-bold text-uppercase fs-7 text-muted border-bottom pb-2">
-                                Route Notifications
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" style="min-width: 290px;">
+                            <li class="dropdown-header fw-bold text-uppercase fs-7 text-muted border-bottom pb-2 d-flex justify-content-between align-items-center">
+                                <span>Route Alerts</span>
+                                @if (dbUnreadAlertsCount > 0)
+                                {
+                                    <span class="badge bg-primary rounded-pill">@dbUnreadAlertsCount New</span>
+                                }
                             </li>
-                            <li class="p-3 text-center text-muted small">
-                                <i class="cil-bell text-secondary fs-4 d-block mb-1"></i>
-                                No active unread route alerts
+                            @if (dbRecentAlerts.Count > 0)
+                            {
+                                @foreach (var alert in dbRecentAlerts.Take(4))
+                                {
+                                    <li class="border-bottom">
+                                        <a class="dropdown-item py-2 px-3" href="~/Notification/DeliveryBoyNotifications">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <strong class="small text-truncate" style="max-width: 170px;">@alert.Title</strong>
+                                                <span class="badge @(alert.IsAcknowledged ? "bg-light text-secondary border" : "bg-primary text-white")" style="font-size: 0.65rem;">
+                                                    @(alert.IsAcknowledged ? "Seen" : "New")
+                                                </span>
+                                            </div>
+                                            <div class="text-muted small text-truncate" style="max-width: 240px;">@alert.Message</div>
+                                            <div class="text-secondary font-tabular" style="font-size: 0.7rem;">@alert.CreatedAt.ToString("MMM dd, HH:mm")</div>
+                                        </a>
+                                    </li>
+                                }
+                            }
+                            else
+                            {
+                                <li class="p-3 text-center text-muted small">
+                                    <i class="cil-bell text-secondary fs-4 d-block mb-1"></i>
+                                    No active unread route alerts
+                                </li>
+                            }
+                            <li class="pt-2 pb-1 text-center bg-light">
+                                <a class="small text-primary fw-medium text-decoration-none" href="~/Notification/DeliveryBoyNotifications">View all alerts &rarr;</a>
                             </li>
                         </ul>
                     </div>
@@ -144,9 +195,9 @@
                                 }
                             </li>
                             <li><hr class="dropdown-divider my-1"></li>
-                            <li><a class="dropdown-item small" href="#profile"><i class="cil-user me-2"></i> Profile</a></li>
-                            <li><a class="dropdown-item small" href="#settings"><i class="cil-settings me-2"></i> Settings</a></li>
-                            <li><a class="dropdown-item small" href="#help-support"><i class="cil-info me-2"></i> Help &amp; Support</a></li>
+                            <li><a class="dropdown-item small" href="~/Settings/Profile"><i class="cil-user me-2"></i> Profile</a></li>
+                            <li><a class="dropdown-item small" href="~/Settings/DeliveryBoySettings"><i class="cil-settings me-2"></i> Settings</a></li>
+                            <li><a class="dropdown-item small" href="~/HelpSupport"><i class="cil-info me-2"></i> Help &amp; Support</a></li>
                             <li><hr class="dropdown-divider my-1"></li>
                             <li>
                                 <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">

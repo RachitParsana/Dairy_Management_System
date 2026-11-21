@@ -1,14 +1,17 @@
-﻿@using System.Security.Claims
+﻿@model Dairy_Management_System.Models.Dashboard.DeliveryBoyDashboardViewModel
+@using System.Security.Claims
 @{
     Layout = "_LayoutDeliveryBoy";
     ViewData["Title"] = "Delivery Partner Portal";
     ViewData["ActiveMenu"] = "Dashboard";
 
     var dbUsername = User.Identity?.Name ?? "deliveryboy";
-    var dbFullName = User.FindFirst(ClaimTypes.GivenName)?.Value;
-    var dbDisplayName = !string.IsNullOrWhiteSpace(dbFullName) ? dbFullName : dbUsername;
+    var dbFullName = !string.IsNullOrWhiteSpace(Model.FullName) ? Model.FullName : (User.FindFirst(ClaimTypes.GivenName)?.Value ?? dbUsername);
     var dbPhone = User.FindFirst(ClaimTypes.MobilePhone)?.Value ?? "";
     var dbUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0";
+
+    var totalDrops = Model.CompletedDropsToday + Model.PendingDropsToday;
+    var completionPercent = totalDrops > 0 ? (int)Math.Round(((double)Model.CompletedDropsToday / totalDrops) * 100) : 0;
 }
 
 <!-- Delivery Boy Route Header Bar -->
@@ -20,14 +23,14 @@
             </div>
             <div>
                 <div class="d-flex align-items-center gap-2">
-                    <h5 class="mb-0 fw-bold text-dark">Partner: @dbDisplayName</h5>
-                    <span class="badge bg-primary text-white">Morning Shift</span>
-                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle d-none d-sm-inline">
+                    <h5 class="mb-0 fw-bold text-dark">Partner: @dbFullName</h5>
+                    <span class="badge bg-primary text-white">@(!string.IsNullOrEmpty(Model.AssignedRouteName) ? Model.AssignedRouteName : "Route Active")</span>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle d-none d-sm-inline font-tabular">
                         ID: #DB-@dbUserId.PadLeft(3, '0')
                     </span>
                 </div>
                 <div class="text-muted small">
-                    Registered Mobile: @(string.IsNullOrEmpty(dbPhone) ? "N/A" : dbPhone) &bull; Assigned Routes Only
+                    Registered Mobile: @(string.IsNullOrEmpty(dbPhone) ? "N/A" : dbPhone) &bull; Operational Portal
                 </div>
             </div>
         </div>
@@ -37,339 +40,282 @@
                 <i class="cil-calendar me-1"></i> @DateTime.Now.ToString("MMM dd, yyyy")
             </span>
             <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">
-                <i class="cil-check-circle me-1"></i> Active Session
+                <i class="cil-check-circle me-1"></i> Route Connected
             </span>
         </div>
     </div>
 </div>
 
-<!-- Notice Banner: Mobile Field Operational Status -->
-<div class="alert alert-info border-info-subtle shadow-sm d-flex align-items-center gap-3 mb-4" role="alert">
-    <i class="cil-info fs-4 text-primary flex-shrink-0"></i>
-    <div class="flex-grow-1">
-        <strong>OPERATIONAL STATUS:</strong> Authenticated delivery partner session active. Assigned route customers and delivery logs will automatically synchronize once routes are mapped by the administrator in Phase 3.
-    </div>
-</div>
-
-<!-- Operational Metric Summary Cards (Neutral Placeholders per Specification) -->
+<!-- Primary Real-Time Operational KPI Cards Row -->
 <div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
-        <div class="card-stat p-3 h-100">
-            <div class="stat-label">Assigned Route Customers</div>
-            <div class="stat-value font-tabular text-primary">--</div>
-            <div class="stat-subtitle text-muted small">Awaiting route dispatch</div>
+    <!-- KPI 1: Assigned Route Customers -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-3 p-md-4">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-semibold text-uppercase">Assigned Route</span>
+                    <div class="p-2 bg-primary bg-opacity-10 text-primary rounded-3">
+                        <i class="cil-map fs-5"></i>
+                    </div>
+                </div>
+                <div class="d-flex align-items-baseline gap-2 mb-1">
+                    <h4 class="mb-0 fw-bold text-dark text-truncate" style="max-width: 200px;">
+                        @(string.IsNullOrWhiteSpace(Model.AssignedRouteName) ? "Unassigned" : Model.AssignedRouteName)
+                    </h4>
+                </div>
+                <div class="d-flex align-items-center justify-content-between text-muted small mt-2">
+                    <span><strong>@Model.TotalRouteCustomers</strong> Active Customers</span>
+                    <a href="~/DailyMilk/MyCustomers" class="text-primary text-decoration-none fw-medium">Roster &rarr;</a>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card-stat p-3 h-100">
-            <div class="stat-label">Completed Drops</div>
-            <div class="stat-value font-tabular text-success">--</div>
-            <div class="stat-subtitle text-muted small">Status: Completed</div>
+
+    <!-- KPI 2: Today's Litres Delivered -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-3 p-md-4">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-semibold text-uppercase">Today's Delivered</span>
+                    <div class="p-2 bg-success bg-opacity-10 text-success rounded-3">
+                        <i class="cil-drop fs-5"></i>
+                    </div>
+                </div>
+                <div class="d-flex align-items-baseline gap-2 mb-1">
+                    <h3 class="mb-0 fw-bold text-dark font-tabular">@Model.TodayDeliveredLitres.ToString("N2") <span class="fs-6 fw-normal text-muted">L</span></h3>
+                </div>
+                <div class="d-flex align-items-center justify-content-between text-muted small mt-2">
+                    <span>Liquid Milk Volume</span>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">Completed</span>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card-stat p-3 h-100">
-            <div class="stat-label">Litres Dispatched</div>
-            <div class="stat-value font-tabular">-- <span class="fs-6 fw-normal text-muted">L</span></div>
-            <div class="stat-subtitle text-muted small">Category quantity total</div>
+
+    <!-- KPI 3: Today's Drops Progress -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-3 p-md-4">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-semibold text-uppercase">Delivery Drops</span>
+                    <div class="p-2 bg-info bg-opacity-10 text-info rounded-3">
+                        <i class="cil-task fs-5"></i>
+                    </div>
+                </div>
+                <div class="d-flex align-items-baseline gap-2 mb-1">
+                    <h3 class="mb-0 fw-bold text-dark font-tabular">@Model.CompletedDropsToday <span class="fs-6 fw-normal text-muted">/ @totalDrops drops</span></h3>
+                </div>
+                <div class="progress mt-2 mb-1" style="height: 6px;">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: @(completionPercent)%;" aria-valuenow="@completionPercent" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div class="d-flex align-items-center justify-content-between text-muted small mt-1">
+                    <span>@completionPercent% Done</span>
+                    <span class="text-warning fw-medium">@Model.PendingDropsToday Pending</span>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
-        <div class="card-stat p-3 h-100">
-            <div class="stat-label">Pending Drops</div>
-            <div class="stat-value font-tabular text-warning">--</div>
-            <div class="stat-subtitle text-muted small">Status: Pending</div>
+
+    <!-- KPI 4: Unread Route Notifications -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-3 p-md-4">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-semibold text-uppercase">Route Bulletins</span>
+                    <div class="p-2 bg-warning bg-opacity-10 text-warning rounded-3">
+                        <i class="cil-bell fs-5"></i>
+                    </div>
+                </div>
+                <div class="d-flex align-items-baseline gap-2 mb-1">
+                    <h3 class="mb-0 fw-bold text-dark font-tabular">@Model.UnreadNotificationsCount <span class="fs-6 fw-normal text-muted">unread</span></h3>
+                </div>
+                <div class="d-flex align-items-center justify-content-between text-muted small mt-2">
+                    <span>Alerts &amp; Notices</span>
+                    <a href="~/Notification/DeliveryBoyNotifications" class="text-primary text-decoration-none fw-medium">View Alerts &rarr;</a>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Mobile-First Delivery Entry & Run-Sheet Area -->
-<div class="row g-4 mb-4">
-    <!-- Touch-Optimized Daily Milk Entry Form -->
-    <div class="col-lg-5 col-xl-4">
-        <div class="card-dms shadow-sm">
-            <div class="card-header bg-white">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="cil-drop text-primary"></i>
-                    <span>Daily Milk Entry</span>
+<!-- Quick Action Operations Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm h-100 bg-primary text-white p-3">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div class="p-2 bg-white bg-opacity-25 rounded-3">
+                    <i class="cil-pencil fs-4"></i>
                 </div>
-                <span class="badge bg-secondary-subtle text-secondary small">Demo Interactive Entry</span>
+                <span class="badge bg-white text-primary fw-bold">Daily Distribution</span>
             </div>
-            <div class="card-body">
-                <form id="milkEntryForm" onsubmit="event.preventDefault();">
-                    <!-- Delivery Shift Selector -->
-                    <div class="mb-3">
-                        <label class="form-dms-label d-block">Delivery Shift</label>
-                        <div class="btn-group w-100" role="group" aria-label="Shift Selector">
-                            <input type="radio" class="btn-check" name="shiftRadio" id="shiftMorning" autocomplete="off" checked>
-                            <label class="btn btn-outline-primary" for="shiftMorning">
-                                <i class="cil-sun me-1"></i> Morning
-                            </label>
-
-                            <input type="radio" class="btn-check" name="shiftRadio" id="shiftEvening" autocomplete="off">
-                            <label class="btn btn-outline-primary" for="shiftEvening">
-                                <i class="cil-moon me-1"></i> Evening
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Assigned Customers Only -->
-                    <div class="mb-3">
-                        <label class="form-dms-label" for="assignedCustomerSelect">
-                            Assigned Customer <span class="text-muted fw-normal">(Route 4 Assigned)</span>
-                        </label>
-                        <select class="form-select form-select-dms" id="assignedCustomerSelect" onchange="toggleVacationState(this.value);">
-                            <option value="active-104" selected>#104 - Sunil Sharma (Standard 2.0 L)</option>
-                            <option value="active-108">#108 - Deepak Joshi (Standard 2.0 L)</option>
-                            <option value="active-112">#112 - Anita Rao (Standard 1.0 L)</option>
-                            <option value="active-115">#115 - Rajesh Mehra (Standard 3.0 L)</option>
-                            <option value="vacation-120">#120 - Amit Patel [APPROVED VACATION]</option>
-                        </select>
-                    </div>
-
-                    <!-- Vacation Notice Banner (Shown when customer has approved vacation) -->
-                    <div id="vacationAlertBox" class="alert alert-info border-info d-none p-2 small mb-3">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="cil-calendar text-info fs-5"></i>
-                            <div>
-                                <strong>Approved Vacation on File:</strong> Entry is locked for this customer. Zero delivery charges apply during approved leave.
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Category-Specific Quantity Entry -->
-                    <div class="mb-3">
-                        <label class="form-dms-label" for="entryCategorySelect">Product Category</label>
-                        <select class="form-select form-select-dms" id="entryCategorySelect">
-                            <option selected>Cow Milk</option>
-                            <option>Buffalo Milk</option>
-                            <option>Full Cream Milk</option>
-                            <option>Curd / Dahi (Kg)</option>
-                        </select>
-                    </div>
-
-                    <!-- Quantity with Mobile Quick-Add Buttons -->
-                    <div class="mb-3">
-                        <label class="form-dms-label" for="milkQuantityInput">Category Quantity</label>
-                        <div class="input-group mb-2">
-                            <input type="number" step="0.25" min="0" class="form-control form-control-dms fs-5 fw-bold text-center" id="milkQuantityInput" value="2.00">
-                            <span class="input-group-text bg-light text-muted fw-semibold">Units</span>
-                        </div>
-                        <div class="d-flex gap-2" id="quickQtyButtonGroup">
-                            <button type="button" class="quick-qty-btn flex-fill" data-add-qty="0.5">+ 0.5</button>
-                            <button type="button" class="quick-qty-btn flex-fill" data-add-qty="1.0">+ 1.0</button>
-                            <button type="button" class="quick-qty-btn flex-fill" data-add-qty="2.0">+ 2.0</button>
-                            <button type="button" class="quick-qty-btn flex-fill text-danger" onclick="document.getElementById('milkQuantityInput').value='0.00';">Clear</button>
-                        </div>
-                    </div>
-
-                    <!-- Strictly Approved Daily Delivery Statuses (Completed, Pending, Not Delivered) -->
-                    <div class="mb-3">
-                        <label class="form-dms-label">Daily Delivery Status</label>
-                        <div class="d-flex gap-2" id="deliveryStatusGroup">
-                            <div class="form-check flex-fill p-2 border rounded text-center">
-                                <input class="form-check-input" type="radio" name="dailyDeliveryStatus" id="statusCompleted" value="Completed" checked>
-                                <label class="form-check-label fw-semibold small text-success" for="statusCompleted">
-                                    Completed
-                                </label>
-                            </div>
-                            <div class="form-check flex-fill p-2 border rounded text-center">
-                                <input class="form-check-input" type="radio" name="dailyDeliveryStatus" id="statusPending" value="Pending">
-                                <label class="form-check-label fw-semibold small text-warning-emphasis" for="statusPending">
-                                    Pending
-                                </label>
-                            </div>
-                            <div class="form-check flex-fill p-2 border rounded text-center">
-                                <input class="form-check-input" type="radio" name="dailyDeliveryStatus" id="statusNotDelivered" value="NotDelivered">
-                                <label class="form-check-label fw-semibold small text-danger" for="statusNotDelivered">
-                                    Not Delivered
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Submit Touch Button -->
-                    <div class="d-grid mt-4">
-                        <button type="submit" id="saveDeliveryBtn" class="btn btn-db-primary btn-touch-lg">
-                            <i class="cil-check fs-5"></i>
-                            <span>Save Entry</span>
-                        </button>
-                    </div>
-                </form>
-            </div>
+            <h5 class="fw-bold mb-1">Daily Milk Runsheet</h5>
+            <p class="small text-white-50 mb-3">Record Morning/Evening delivery drops, liquid volumes, and vacation skips.</p>
+            <a href="~/DailyMilk" class="btn btn-light text-primary fw-semibold mt-auto">
+                <i class="cil-check me-1"></i> Open Runsheet
+            </a>
         </div>
     </div>
 
-    <!-- Right Column: Today's Assigned Run Sheet -->
-    <div class="col-lg-7 col-xl-8">
-        <div class="card-dms shadow-sm">
-            <div class="card-header bg-white">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="cil-task text-primary"></i>
-                    <span>Route Assigned Run Sheet</span>
-                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle small ms-2">DEMO PREVIEW</span>
+    <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm h-100 bg-white p-3">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div class="p-2 bg-primary bg-opacity-10 text-primary rounded-3">
+                    <i class="cil-people fs-4"></i>
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-light text-secondary border">@DateTime.Now.ToString("MMM dd, yyyy")</span>
+                <span class="badge bg-light text-secondary border font-tabular">@Model.TotalRouteCustomers Customers</span>
+            </div>
+            <h5 class="fw-bold text-dark mb-1">Assigned Customer Roster</h5>
+            <p class="small text-muted mb-3">Inspect your route sequence, delivery addresses, landmarks, and daily subscribed milk.</p>
+            <a href="~/DailyMilk/MyCustomers" class="btn btn-outline-primary fw-semibold mt-auto">
+                <i class="cil-list me-1"></i> View Route Roster
+            </a>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+        <div class="card border-0 shadow-sm h-100 bg-white p-3">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div class="p-2 bg-warning bg-opacity-10 text-warning rounded-3">
+                    <i class="cil-bell fs-4"></i>
                 </div>
+                <span class="badge @(Model.UnreadNotificationsCount > 0 ? "bg-danger text-white" : "bg-light text-secondary border")">
+                    @Model.UnreadNotificationsCount Active
+                </span>
             </div>
-            <div class="table-responsive">
-                <table class="table table-dms table-hover align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>Stop #</th>
-                            <th>Customer &amp; Address</th>
-                            <th>Category</th>
-                            <th class="text-end">Qty</th>
-                            <th class="text-center">Daily Delivery Status</th>
-                            <th class="text-end">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Stop 1: Completed status -->
-                        <tr>
-                            <td class="fw-bold text-muted">01</td>
-                            <td>
-                                <div class="fw-semibold text-dark">Sunil Sharma</div>
-                                <div class="text-muted small">Flat 101, Sector 12</div>
-                            </td>
-                            <td><span class="badge bg-light text-dark border">Cow Milk</span></td>
-                            <td class="text-end font-tabular fw-bold">2.00 L</td>
-                            <td class="text-center"><span class="badge-status badge-status-completed">Completed</span></td>
-                            <td class="text-end">
-                                <button class="btn btn-sm btn-light border text-muted" type="button" disabled title="Entry already completed">
-                                    <i class="cil-check"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        <!-- Stop 2: Approved Vacation on file -> Status is Not Delivered, entry locked -->
-                        <tr class="table-light">
-                            <td class="fw-bold text-muted">02</td>
-                            <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="fw-semibold text-dark">Amit Patel</span>
-                                    <span class="badge-vacation-indicator" title="Separate approved vacation record on file">
-                                        <i class="cil-calendar"></i> Approved Vacation
-                                    </span>
-                                </div>
-                                <div class="text-muted small">Villa 14, Sector 12 &bull; Active Leave Period</div>
-                            </td>
-                            <td><span class="badge bg-light text-dark border">Full Cream Milk</span></td>
-                            <td class="text-end font-tabular text-muted">0.00 L</td>
-                            <td class="text-center"><span class="badge-status badge-status-notdelivered">Not Delivered</span></td>
-                            <td class="text-end">
-                                <button class="btn btn-sm btn-outline-secondary" type="button" onclick="selectVacationDemoCustomer();">
-                                    View Lock
-                                </button>
-                            </td>
-                        </tr>
-                        <!-- Stop 3: Pending status -->
-                        <tr>
-                            <td class="fw-bold text-primary">03</td>
-                            <td>
-                                <div class="fw-semibold text-dark">Deepak Joshi</div>
-                                <div class="text-muted small">Flat 204, Sector 14 &bull; Gate code #491</div>
-                            </td>
-                            <td><span class="badge bg-light text-dark border">Buffalo Milk</span></td>
-                            <td class="text-end font-tabular fw-bold text-primary">2.00 L</td>
-                            <td class="text-center"><span class="badge-status badge-status-pending">Pending</span></td>
-                            <td class="text-end">
-                                <button class="btn btn-sm btn-primary" type="button" onclick="selectActiveCustomer(1, '2.00');">
-                                    Deliver
-                                </button>
-                            </td>
-                        </tr>
-                        <!-- Stop 4: Pending status -->
-                        <tr>
-                            <td class="fw-bold text-muted">04</td>
-                            <td>
-                                <div class="fw-semibold text-dark">Anita Rao</div>
-                                <div class="text-muted small">House 22, Sector 14</div>
-                            </td>
-                            <td><span class="badge bg-light text-dark border">Cow Milk</span></td>
-                            <td class="text-end font-tabular fw-bold">1.00 L</td>
-                            <td class="text-center"><span class="badge-status badge-status-pending">Pending</span></td>
-                            <td class="text-end">
-                                <button class="btn btn-sm btn-outline-secondary" type="button" onclick="selectActiveCustomer(2, '1.00');">
-                                    Select
-                                </button>
-                            </td>
-                        </tr>
-                        <!-- Stop 5: Pending status -->
-                        <tr>
-                            <td class="fw-bold text-muted">05</td>
-                            <td>
-                                <div class="fw-semibold text-dark">Rajesh Mehra</div>
-                                <div class="text-muted small">House 35, Sector 14</div>
-                            </td>
-                            <td><span class="badge bg-light text-dark border">Cow Milk</span></td>
-                            <td class="text-end font-tabular fw-bold">3.00 L</td>
-                            <td class="text-center"><span class="badge-status badge-status-pending">Pending</span></td>
-                            <td class="text-end">
-                                <button class="btn btn-sm btn-outline-secondary" type="button" onclick="selectActiveCustomer(3, '3.00');">
-                                    Select
-                                </button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <h5 class="fw-bold text-dark mb-1">Route Announcements</h5>
+            <p class="small text-muted mb-3">Read supervisor broadcasts, route change notices, and newly published monthly customer bills.</p>
+            <a href="~/Notification/DeliveryBoyNotifications" class="btn btn-outline-secondary fw-semibold mt-auto">
+                <i class="cil-bullhorn me-1"></i> View Notifications
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Operational Instructions Notice -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body p-3 p-md-4">
+        <div class="d-flex align-items-center gap-3">
+            <div class="p-3 bg-light rounded-circle text-primary">
+                <i class="cil-info fs-3"></i>
             </div>
-            <div class="card-footer bg-white border-top py-2 px-3 d-flex justify-content-between align-items-center">
-                <span class="text-muted small">Demonstration Run Sheet &bull; Assigned Customers</span>
-                <span class="text-muted small">Statuses: Completed &bull; Pending &bull; Not Delivered</span>
+            <div>
+                <h6 class="fw-bold text-dark mb-1">Daily Field Partner Operating Protocol</h6>
+                <p class="text-muted small mb-0">
+                    Always confirm subscription quantities prior to dispatch. Customers on approved vacation are automatically excluded from the runsheet. If a customer requests unscheduled extra milk, obtain admin authorization or note it for supervisor review.
+                </p>
             </div>
         </div>
     </div>
 </div>
+
+<!-- ONE-TIME BILL PUBLICATION POPUP MODAL (Persists Across Logins via dbo.NotificationPopupSeen) -->
+@if (Model.UnacknowledgedBillPopups != null && Model.UnacknowledgedBillPopups.Count > 0)
+{
+    <div class="modal fade" id="billPublishedPopupModal" tabindex="-1" aria-labelledby="billPublishedModalTitle" aria-hidden="true" data-coreui-backdrop="static" data-coreui-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white py-3">
+                    <h5 class="modal-title fw-bold" id="billPublishedModalTitle">
+                        <i class="cil-bell me-2"></i> Monthly Bills Published on Your Route
+                    </h5>
+                </div>
+                <div class="modal-body p-3 p-md-4">
+                    <div class="alert alert-primary-subtle text-primary border border-primary-subtle small mb-3">
+                        <i class="cil-info me-1"></i> New monthly billing statements have been published for customers on <strong>@(string.IsNullOrEmpty(Model.AssignedRouteName) ? "your assigned route" : Model.AssignedRouteName)</strong>. Please note the updated statement amounts for payment collections.
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm align-middle font-tabular mb-0">
+                            <thead class="table-light fs-7 text-uppercase text-secondary">
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Billing Month</th>
+                                    <th class="text-end">Invoice Amount</th>
+                                    <th class="text-end">Total Outstanding</th>
+                                </tr>
+                            </thead>
+                            <tbody class="fs-6">
+                                @foreach (var popup in Model.UnacknowledgedBillPopups)
+                                {
+                                    <tr data-popup-notif-id="@popup.NotificationId">
+                                        <td>
+                                            <span class="fw-semibold text-dark">@(string.IsNullOrWhiteSpace(popup.CustomerNameSnapshot) ? popup.Title : popup.CustomerNameSnapshot)</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-secondary border">@(string.IsNullOrWhiteSpace(popup.BillingMonthYear) ? "Current Cycle" : popup.BillingMonthYear)</span>
+                                        </td>
+                                        <td class="text-end fw-semibold">
+                                            ₹ @(popup.UpdatedBillAmount.HasValue ? popup.UpdatedBillAmount.Value.ToString("N2") : "0.00")
+                                        </td>
+                                        <td class="text-end fw-bold text-danger">
+                                            ₹ @(popup.NewTotalOutstandingBalance.HasValue ? popup.NewTotalOutstandingBalance.Value.ToString("N2") : "0.00")
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-muted small mt-2">
+                        * Dismissing this modal marks these alerts as seen on your account so this popup will not reappear on subsequent logins.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2 px-3">
+                    <button type="button" class="btn btn-primary px-4" id="btnDismissBillPopups">
+                        <i class="cil-check me-1"></i> Understood &amp; Dismiss
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@Html.AntiForgeryToken()
 
 @section Scripts {
-<script>
-    function toggleVacationState(val) {
-        const isVacation = val.startsWith('vacation');
-        const alertBox = document.getElementById('vacationAlertBox');
-        const qtyInput = document.getElementById('milkQuantityInput');
-        const catSelect = document.getElementById('entryCategorySelect');
-        const saveBtn = document.getElementById('saveDeliveryBtn');
-        const statusCompleted = document.getElementById('statusCompleted');
-        const statusPending = document.getElementById('statusPending');
-        const statusNotDelivered = document.getElementById('statusNotDelivered');
-        const qtyBtns = document.querySelectorAll('#quickQtyButtonGroup button');
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Auto-trigger the Bill Published Modal if unacknowledged popups exist
+            var modalEl = document.getElementById('billPublishedPopupModal');
+            if (modalEl) {
+                var popupModal = new coreui.Modal(modalEl);
+                popupModal.show();
 
-        if (isVacation) {
-            alertBox.classList.remove('d-none');
-            qtyInput.value = '0.00';
-            qtyInput.disabled = true;
-            catSelect.disabled = true;
-            saveBtn.disabled = true;
-            statusNotDelivered.checked = true;
-            statusCompleted.disabled = true;
-            statusPending.disabled = true;
-            statusNotDelivered.disabled = true;
-            qtyBtns.forEach(b => b.disabled = true);
-        } else {
-            alertBox.classList.add('d-none');
-            qtyInput.disabled = false;
-            catSelect.disabled = false;
-            saveBtn.disabled = false;
-            statusCompleted.disabled = false;
-            statusPending.disabled = false;
-            statusNotDelivered.disabled = false;
-            statusCompleted.checked = true;
-            qtyBtns.forEach(b => b.disabled = false);
-        }
-    }
+                var btnDismiss = document.getElementById('btnDismissBillPopups');
+                if (btnDismiss) {
+                    btnDismiss.addEventListener('click', async function () {
+                        btnDismiss.disabled = true;
+                        btnDismiss.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Dismissing...';
 
-    function selectVacationDemoCustomer() {
-        const select = document.getElementById('assignedCustomerSelect');
-        select.value = 'vacation-120';
-        toggleVacationState(select.value);
-    }
+                        // Collect all notification IDs in the modal
+                        var rows = modalEl.querySelectorAll('tbody tr[data-popup-notif-id]');
+                        var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
 
-    function selectActiveCustomer(index, defaultQty) {
-        const select = document.getElementById('assignedCustomerSelect');
-        select.selectedIndex = index;
-        toggleVacationState(select.value);
-        document.getElementById('milkQuantityInput').value = defaultQty;
-    }
-</script>
+                        var promises = [];
+                        rows.forEach(function (row) {
+                            var notifId = row.getAttribute('data-popup-notif-id');
+                            if (notifId) {
+                                var formData = new URLSearchParams();
+                                formData.append('notificationId', notifId);
+                                formData.append('__RequestVerificationToken', token);
+
+                                promises.push(fetch('/Notification/DismissPopup', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                                    body: formData
+                                }));
+                            }
+                        });
+
+                        try {
+                            await Promise.all(promises);
+                        } catch (e) {
+                            console.error('Error recording popup dismissal', e);
+                        }
+
+                        popupModal.hide();
+                    });
+                }
+            }
+        });
+    </script>
 }

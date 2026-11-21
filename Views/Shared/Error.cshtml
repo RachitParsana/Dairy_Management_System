@@ -1,25 +1,83 @@
 ﻿@model ErrorViewModel
 @{
-    ViewData["Title"] = "Error";
+    ViewData["Title"] = Model.StatusCode.HasValue ? $"Error {Model.StatusCode}" : "Error";
+
+    // Dynamic layout selection based on authenticated user's role
+    if (User.IsInRole("Admin"))
+    {
+        Layout = "_LayoutAdmin";
+    }
+    else if (User.IsInRole("DeliveryBoy"))
+    {
+        Layout = "_LayoutDeliveryBoy";
+    }
+    else
+    {
+        Layout = "_Layout";
+    }
+
+    var code = Model.StatusCode ?? 500;
+    var homeUrl = User.IsInRole("Admin") ? "~/Home/Index" : (User.IsInRole("DeliveryBoy") ? "~/Home/Privacy" : "~/Auth/AdminLogin");
+    var dashboardLabel = User.IsInRole("DeliveryBoy") ? "Back to Field Portal" : "Back to Dashboard";
 }
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
+<div class="row justify-content-center py-5">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="card border-0 shadow-sm text-center py-4 px-3 px-md-4">
+            <div class="card-body">
+                <div class="mb-3">
+                    @if (code == 404)
+                    {
+                        <div class="rounded-circle bg-warning bg-opacity-10 text-warning d-inline-flex align-items-center justify-content-center p-3 mb-2" style="width: 80px; height: 80px;">
+                            <i class="cil-magnifying-glass fs-1"></i>
+                        </div>
+                    }
+                    else if (code == 403)
+                    {
+                        <div class="rounded-circle bg-danger bg-opacity-10 text-danger d-inline-flex align-items-center justify-content-center p-3 mb-2" style="width: 80px; height: 80px;">
+                            <i class="cil-lock-locked fs-1"></i>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="rounded-circle bg-danger bg-opacity-10 text-danger d-inline-flex align-items-center justify-content-center p-3 mb-2" style="width: 80px; height: 80px;">
+                            <i class="cil-warning fs-1"></i>
+                        </div>
+                    }
+                </div>
 
-@if (Model.ShowRequestId)
-{
-    <p>
-        <strong>Request ID:</strong> <code>@Model.RequestId</code>
-    </p>
-}
+                <div class="display-5 fw-bold text-dark font-tabular mb-1">
+                    @if (Model.StatusCode.HasValue)
+                    {
+                        <span>HTTP @Model.StatusCode</span>
+                    }
+                    else
+                    {
+                        <span>Error</span>
+                    }
+                </div>
 
-<h3>Development Mode</h3>
-<p>
-    Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
-</p>
-<p>
-    <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
-    It can result in displaying sensitive information from exceptions to end users.
-    For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
-    and restarting the app.
-</p>
+                <h4 class="fw-semibold text-secondary mb-3">@Model.StatusMessage</h4>
+                <p class="text-muted mb-4 lead fs-6">
+                    @Model.StatusDescription
+                </p>
+
+                @if (Model.ShowRequestId)
+                {
+                    <div class="alert alert-light border small text-muted font-monospace d-inline-block text-start py-2 px-3 mb-4">
+                        <i class="cil-tag me-1"></i> Tracking Reference: <strong>@Model.RequestId</strong>
+                    </div>
+                }
+
+                <div class="d-flex justify-content-center gap-2">
+                    <a href="@Url.Content(homeUrl)" class="btn btn-primary px-4 py-2">
+                        <i class="cil-home me-1"></i> @dashboardLabel
+                    </a>
+                    <button type="button" onclick="history.back()" class="btn btn-outline-secondary px-3 py-2">
+                        <i class="cil-arrow-left me-1"></i> Go Back
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
