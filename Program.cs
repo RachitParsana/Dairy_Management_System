@@ -143,6 +143,33 @@ namespace Dairy_Management_System
             builder.Services.AddScoped<IDeliveryBoyService, DeliveryBoyService>();
             builder.Services.AddScoped<ICompensationService, CompensationService>();
 
+            // Register Day 7 System Integration Repositories
+            builder.Services.AddScoped<IDashboardRepository>(sp => new DashboardRepository(
+                sp.GetRequiredService<ISqlConnectionFactory>(),
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<DashboardRepository>>()));
+            builder.Services.AddScoped<IReportsRepository>(sp => new ReportsRepository(
+                sp.GetRequiredService<ISqlConnectionFactory>(),
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ReportsRepository>>()));
+            builder.Services.AddScoped<IExportRepository>(sp => new ExportRepository(
+                sp.GetRequiredService<ISqlConnectionFactory>(),
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ExportRepository>>()));
+            builder.Services.AddScoped<INotificationRepository>(sp => new NotificationRepository(
+                sp.GetRequiredService<ISqlConnectionFactory>(),
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<NotificationRepository>>()));
+            builder.Services.AddScoped<ISettingsRepository>(sp => new SettingsRepository(
+                sp.GetRequiredService<ISqlConnectionFactory>(),
+                sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<SettingsRepository>>()));
+
+            // Register Day 7 System Integration Application Services
+            builder.Services.AddScoped<IDashboardService, DashboardService>();
+            builder.Services.AddScoped<IReportsService, ReportsService>();
+            builder.Services.AddScoped<IExportService, ExportService>();
+            builder.Services.AddScoped<INotificationService, NotificationService>();
+            builder.Services.AddScoped<ISettingsService, SettingsService>();
+
+            // Register Day 7 Published Bill Notification Periodic Reconciliation Background Service
+            builder.Services.AddHostedService<PublishedBillNotificationReconciliationBackgroundService>();
+
             var app = builder.Build();
 
             // Enable forwarded headers processing before HttpsRedirection and Authentication

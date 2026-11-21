@@ -16,11 +16,16 @@ namespace Dairy_Management_System.Services
     {
         private readonly IBillingRepository _billingRepository;
         private readonly ILogger<BillingService> _logger;
+        private readonly INotificationService? _notificationService;
 
-        public BillingService(IBillingRepository billingRepository, ILogger<BillingService> logger)
+        public BillingService(
+            IBillingRepository billingRepository,
+            ILogger<BillingService> logger,
+            INotificationService? notificationService = null)
         {
             _billingRepository = billingRepository ?? throw new ArgumentNullException(nameof(billingRepository));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _notificationService = notificationService;
         }
 
         #region Invoice Operations
@@ -78,6 +83,42 @@ namespace Dairy_Management_System.Services
             var result = await _billingRepository.PublishBillAsync(billId, graceDays, adminUserId, cancellationToken)
                 .ConfigureAwait(false);
 
+            if (result && _notificationService != null)
+            {
+                const int maxRetries = 3;
+                bool emitted = false;
+                for (int attempt = 1; attempt <= maxRetries && !emitted; attempt++)
+                {
+                    try
+                    {
+                        await _notificationService.EmitBillPublishedNotificationAsync(billId, adminUserId, cancellationToken)
+                            .ConfigureAwait(false);
+                        emitted = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Attempt {Attempt}/{MaxRetries} to emit notification for BillId: {BillId} failed.", attempt, maxRetries, billId);
+                        if (attempt < maxRetries)
+                        {
+                            await Task.Delay(50 * attempt, cancellationToken).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            _logger.LogError(ex, "Notification emission failed for published BillId: {BillId} after {MaxRetries} retries. Triggering durable reconciliation.", billId, maxRetries);
+                            try
+                            {
+                                await _notificationService.ReconcilePublishedBillNotificationsAsync(adminUserId, cancellationToken)
+                                    .ConfigureAwait(false);
+                            }
+                            catch (Exception reconEx)
+                            {
+                                _logger.LogError(reconEx, "Reconciliation attempt for BillId: {BillId} encountered error. Bill remains published safely.", billId);
+                            }
+                        }
+                    }
+                }
+            }
+
             _logger.LogInformation("BillId: {BillId} published successfully.", billId);
             return result;
         }
@@ -94,6 +135,20 @@ namespace Dairy_Management_System.Services
 
             var count = await _billingRepository.BulkPublishBillsAsync(month, year, routeId, graceDays, adminUserId, cancellationToken)
                 .ConfigureAwait(false);
+
+            if (count > 0 && _notificationService != null)
+            {
+                try
+                {
+                    var reconciled = await _notificationService.ReconcilePublishedBillNotificationsAsync(adminUserId, cancellationToken)
+                        .ConfigureAwait(false);
+                    _logger.LogInformation("Reconciled {Reconciled} notifications for bulk published bills.", reconciled);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to reconcile notifications for bulk published bills.");
+                }
+            }
 
             _logger.LogInformation("Bulk publish complete. Total bills published: {Count}", count);
             return count;

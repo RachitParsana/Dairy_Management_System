@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Dairy_Management_System.Models.DailyMilk;
+using Dairy_Management_System.Models.DeliveryBoy;
 
 namespace Dairy_Management_System.Services
 {
@@ -195,6 +196,14 @@ namespace Dairy_Management_System.Services
             DateOnly entryDate,
             string shift,
             int? deliveryBoyId = null,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Day 7 Integration: Retrieves the active customer roster assigned to the Delivery Boy resolved from UserId,
+        /// including subscription defaults, sequence, and today's vacation status.
+        /// </summary>
+        Task<IReadOnlyList<DeliveryBoyCustomerRosterItemViewModel>> GetAssignedCustomersRosterAsync(
+            int userId,
             CancellationToken cancellationToken = default);
 
         #endregion

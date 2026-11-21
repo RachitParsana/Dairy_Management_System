@@ -875,13 +875,13 @@ namespace Dairy_Management_System.Repositories
                 {
                     EntryDate = entryDate,
                     Shift = shift,
-                    TotalCustomers = reader.GetInt32(reader.GetOrdinal("TotalAssignedCustomers")),
-                    CompletedDeliveries = reader.GetInt32(reader.GetOrdinal("CompletedCount")),
-                    PendingDeliveries = reader.GetInt32(reader.GetOrdinal("PendingCount")),
-                    NotDeliveredCount = reader.GetInt32(reader.GetOrdinal("NotDeliveredCount")),
-                    TotalLiquidLitres = reader.GetDecimal(reader.GetOrdinal("TotalLiquidVolumeLitres")),
-                    TotalAmount = reader.GetDecimal(reader.GetOrdinal("TotalAmount")),
-                    EligibleCommissionLitres = reader.GetDecimal(reader.GetOrdinal("TotalLiquidVolumeLitres"))
+                    TotalCustomers = reader.IsDBNull(reader.GetOrdinal("TotalAssignedCustomers")) ? 0 : reader.GetInt32(reader.GetOrdinal("TotalAssignedCustomers")),
+                    CompletedDeliveries = reader.IsDBNull(reader.GetOrdinal("CompletedCount")) ? 0 : reader.GetInt32(reader.GetOrdinal("CompletedCount")),
+                    PendingDeliveries = reader.IsDBNull(reader.GetOrdinal("PendingCount")) ? 0 : reader.GetInt32(reader.GetOrdinal("PendingCount")),
+                    NotDeliveredCount = reader.IsDBNull(reader.GetOrdinal("NotDeliveredCount")) ? 0 : reader.GetInt32(reader.GetOrdinal("NotDeliveredCount")),
+                    TotalLiquidLitres = reader.IsDBNull(reader.GetOrdinal("TotalLiquidVolumeLitres")) ? 0m : reader.GetDecimal(reader.GetOrdinal("TotalLiquidVolumeLitres")),
+                    TotalAmount = reader.IsDBNull(reader.GetOrdinal("TotalAmount")) ? 0m : reader.GetDecimal(reader.GetOrdinal("TotalAmount")),
+                    EligibleCommissionLitres = reader.IsDBNull(reader.GetOrdinal("TotalLiquidVolumeLitres")) ? 0m : reader.GetDecimal(reader.GetOrdinal("TotalLiquidVolumeLitres"))
                 };
             }
 

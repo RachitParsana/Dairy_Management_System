@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dairy_Management_System.Data;
 using Dairy_Management_System.Models.DailyMilk;
+using Dairy_Management_System.Models.DeliveryBoy;
 using Dairy_Management_System.Repositories;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
@@ -626,6 +627,50 @@ namespace Dairy_Management_System.Services
             CancellationToken cancellationToken = default)
         {
             return await _dailyMilkRepository.GetDailyShiftSummaryAsync(entryDate, shift, deliveryBoyId, cancellationToken).ConfigureAwait(false);
+        }
+
+        public async Task<IReadOnlyList<DeliveryBoyCustomerRosterItemViewModel>> GetAssignedCustomersRosterAsync(
+            int userId,
+            CancellationToken cancellationToken = default)
+        {
+            var dbInfo = await ResolveDeliveryBoyByUserIdAsync(userId, cancellationToken).ConfigureAwait(false);
+            if (!dbInfo.HasValue)
+            {
+                return Array.Empty<DeliveryBoyCustomerRosterItemViewModel>();
+            }
+
+            var list = new List<DeliveryBoyCustomerRosterItemViewModel>();
+
+            await using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+            await using var command = new SqlCommand("dbo.usp_DeliveryBoy_GetCustomerRoster", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.Add("@DeliveryBoyId", SqlDbType.Int).Value = dbInfo.Value.DeliveryBoyId;
+
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                list.Add(new DeliveryBoyCustomerRosterItemViewModel
+                {
+                    CustomerId = reader.GetInt32(reader.GetOrdinal("CustomerId")),
+                    CustomerCode = reader.GetString(reader.GetOrdinal("CustomerCode")),
+                    FullName = reader.GetString(reader.GetOrdinal("FullName")),
+                    Phone = reader.GetString(reader.GetOrdinal("Phone")),
+                    Address = reader.IsDBNull(reader.GetOrdinal("Address")) ? string.Empty : reader.GetString(reader.GetOrdinal("Address")),
+                    Area = reader.IsDBNull(reader.GetOrdinal("Area")) ? string.Empty : reader.GetString(reader.GetOrdinal("Area")),
+                    Landmark = reader.IsDBNull(reader.GetOrdinal("Landmark")) ? string.Empty : reader.GetString(reader.GetOrdinal("Landmark")),
+                    DeliverySequence = reader.GetInt32(reader.GetOrdinal("DeliverySequence")),
+                    SubscriptionId = reader.IsDBNull(reader.GetOrdinal("SubscriptionId")) ? null : reader.GetInt32(reader.GetOrdinal("SubscriptionId")),
+                    CategoryName = reader.IsDBNull(reader.GetOrdinal("CategoryName")) ? string.Empty : reader.GetString(reader.GetOrdinal("CategoryName")),
+                    Unit = reader.IsDBNull(reader.GetOrdinal("Unit")) ? string.Empty : reader.GetString(reader.GetOrdinal("Unit")),
+                    DailyQuantity = reader.IsDBNull(reader.GetOrdinal("DailyQuantity")) ? 0m : reader.GetDecimal(reader.GetOrdinal("DailyQuantity")),
+                    ShiftPreference = reader.IsDBNull(reader.GetOrdinal("ShiftPreference")) ? string.Empty : reader.GetString(reader.GetOrdinal("ShiftPreference")),
+                    IsOnVacationToday = !reader.IsDBNull(reader.GetOrdinal("IsOnVacationToday")) && Convert.ToBoolean(reader.GetValue(reader.GetOrdinal("IsOnVacationToday")))
+                });
+            }
+
+            return list;
         }
 
         #endregion
