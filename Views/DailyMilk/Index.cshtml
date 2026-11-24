@@ -464,7 +464,7 @@
                 <h5 class="modal-title fs-6 fw-bold" id="submitConfirmModalLabel">
                     <i class="cil-check-circle me-1"></i> Finalize Shift Submission
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-coreui-dismiss="modal" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
                 <p class="mb-3 text-dark">
@@ -507,7 +507,7 @@
                 </div>
             </div>
             <div class="modal-footer bg-light p-3">
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-coreui-dismiss="modal" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary btn-sm px-3" id="btnConfirmSubmit">Confirm &amp; Finalize Shift</button>
             </div>
         </div>
@@ -808,8 +808,9 @@
         const btnSubmitFinal = document.getElementById('btnSubmitFinal');
         const submitConfirmModalEl = document.getElementById('submitConfirmModal');
         let submitConfirmModal = null;
-        if (submitConfirmModalEl) {
-            submitConfirmModal = new bootstrap.Modal(submitConfirmModalEl);
+        const ModalConstructor = (window.coreui && window.coreui.Modal) || (window.bootstrap && window.bootstrap.Modal);
+        if (submitConfirmModalEl && ModalConstructor) {
+            submitConfirmModal = new ModalConstructor(submitConfirmModalEl);
         }
 
         if (btnSubmitFinal && submitConfirmModal) {
