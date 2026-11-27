@@ -1,4 +1,5 @@
 using Dairy_Management_System.Models.Auth;
+using Dairy_Management_System.Models.Settings;
 
 namespace Dairy_Management_System.Repositories
 {
@@ -42,5 +43,17 @@ namespace Dairy_Management_System.Repositories
         /// <param name="lastLoginUtc">Current UTC timestamp.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         Task UpdateLastLoginAtAsync(int userId, DateTime lastLoginUtc, CancellationToken cancellationToken = default);
+    }
+
+    /// <summary>
+    /// Least-privilege account management repository executing stored procedures via ownership chaining.
+    /// </summary>
+    public interface IUserAccountRepository
+    {
+        Task<UserProfileDto?> GetProfileByIdAsync(int userId, CancellationToken cancellationToken = default);
+        Task<UserAuthRecord?> GetAuthByIdAsync(int userId, CancellationToken cancellationToken = default);
+        Task<UserAuthRecord?> GetAuthByDeliveryBoyIdAsync(int deliveryBoyId, CancellationToken cancellationToken = default);
+        Task UpdateOwnProfileAsync(int userId, string? username, string fullName, string phone, string? vehicleNumber, CancellationToken cancellationToken = default);
+        Task UpdatePasswordHashAsync(int userId, string newPasswordHash, int modifiedByUserId, CancellationToken cancellationToken = default);
     }
 }

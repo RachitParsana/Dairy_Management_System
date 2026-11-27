@@ -5,6 +5,19 @@
  */
 
 document.addEventListener('DOMContentLoaded', function () {
+    // CoreUI 5 Bootstrap-attribute compatibility bridge (maps data-bs-* attributes to data-coreui-*)
+    document.querySelectorAll('[data-bs-toggle], [data-bs-target], [data-bs-dismiss]').forEach(function (el) {
+        if (el.hasAttribute('data-bs-toggle') && !el.hasAttribute('data-coreui-toggle')) {
+            el.setAttribute('data-coreui-toggle', el.getAttribute('data-bs-toggle'));
+        }
+        if (el.hasAttribute('data-bs-target') && !el.hasAttribute('data-coreui-target')) {
+            el.setAttribute('data-coreui-target', el.getAttribute('data-bs-target'));
+        }
+        if (el.hasAttribute('data-bs-dismiss') && !el.hasAttribute('data-coreui-dismiss')) {
+            el.setAttribute('data-coreui-dismiss', el.getAttribute('data-bs-dismiss'));
+        }
+    });
+
     // Universal sidebar toggle helper
     const sidebar = document.getElementById('sidebar');
     const togglerButtons = document.querySelectorAll('[data-dms-toggle="sidebar"], .header-toggler');

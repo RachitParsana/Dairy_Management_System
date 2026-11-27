@@ -1,0 +1,191 @@
+@model Dairy_Management_System.Models.Settings.AdminProfilePageViewModel
+@{
+    Layout = "_LayoutAdmin";
+    ViewData["Title"] = "My Profile & Password";
+    ViewData["ActiveMenu"] = "Settings";
+}
+
+<div class="container-fluid px-0 pb-5">
+    <!-- Breadcrumb & Header -->
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 text-muted small">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" class="text-decoration-none">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a asp-controller="Settings" asp-action="Index" class="text-decoration-none">Settings</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">My Profile &amp; Password</li>
+                </ol>
+            </nav>
+            <h2 class="h3 fw-bold text-dark mb-1">
+                <i class="cil-user text-success me-2"></i>Administrator Profile &amp; Security
+            </h2>
+            <p class="text-muted small mb-0">
+                Update your administrator account details, registered mobile number, and authentication password.
+            </p>
+        </div>
+        <div class="col-md-4 text-md-end mt-2 mt-md-0">
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                <i class="cil-arrow-left me-1"></i> Back to Enterprise Settings
+            </a>
+        </div>
+    </div>
+
+    <!-- Feedback Banners -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="cil-check-circle fs-5 me-2"></i>
+                <div>@TempData["SuccessMessage"]</div>
+            </div>
+            <button type="button" class="btn-close" data-coreui-dismiss="alert" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="cil-warning fs-5 me-2"></i>
+                <div>@TempData["ErrorMessage"]</div>
+            </div>
+            <button type="button" class="btn-close" data-coreui-dismiss="alert" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Profile Summary Banner -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4 text-white" style="background: linear-gradient(135deg, #065f46 0%, #059669 100%);">
+        <div class="card-body p-4">
+            <div class="row align-items-center g-3">
+                <div class="col-auto">
+                    @{
+                        var initials = !string.IsNullOrWhiteSpace(Model.ProfileForm.FullName)
+                            ? (Model.ProfileForm.FullName.Length >= 2 ? Model.ProfileForm.FullName.Substring(0, 2).ToUpperInvariant() : Model.ProfileForm.FullName.ToUpperInvariant())
+                            : "AD";
+                    }
+                    <div class="rounded-circle bg-white text-success d-flex align-items-center justify-content-center shadow-sm fw-bold fs-3" style="width: 68px; height: 68px;">
+                        @initials
+                    </div>
+                </div>
+                <div class="col">
+                    <h4 class="fw-bold mb-1">@Model.ProfileForm.FullName</h4>
+                    <div class="small opacity-90 d-flex flex-wrap gap-3">
+                        <span><i class="cil-user me-1"></i>@@@Model.ProfileForm.Username</span>
+                        <span><i class="cil-phone me-1"></i>@Model.ProfileForm.Phone</span>
+                        <span><i class="cil-shield-alt me-1"></i>Role: @Model.Role</span>
+                    </div>
+                </div>
+                <div class="col-auto text-md-end small">
+                    <span class="badge bg-white text-success px-3 py-2 rounded-pill mb-1">Active Administrator</span>
+                    <div class="opacity-75">Last Login: @(Model.LastLoginAt.HasValue ? Model.LastLoginAt.Value.ToString("dd MMM yyyy, HH:mm") + " UTC" : "Current Session")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Left Card: Update Profile Details -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="cil-pencil text-success me-2"></i>Update Profile Information
+                    </h6>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-controller="Settings" asp-action="UpdateAdminProfile" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <div class="mb-3">
+                            <label asp-for="ProfileForm.FullName" class="form-label small fw-semibold text-secondary">Full Name <span class="text-danger">*</span></label>
+                            <input asp-for="ProfileForm.FullName" class="form-control" maxlength="100" required />
+                            <span asp-validation-for="ProfileForm.FullName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ProfileForm.Username" class="form-label small fw-semibold text-secondary">Admin Username <span class="text-danger">*</span></label>
+                            <input asp-for="ProfileForm.Username" class="form-control" maxlength="50" required />
+                            <span asp-validation-for="ProfileForm.Username" class="text-danger small"></span>
+                            <div class="form-text small">Used along with your mobile number to authenticate into the Admin Portal.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="ProfileForm.Phone" class="form-label small fw-semibold text-secondary">Registered Mobile Number <span class="text-danger">*</span></label>
+                            <input asp-for="ProfileForm.Phone" class="form-control font-tabular" maxlength="10" pattern="[6-9][0-9]{9}" required />
+                            <span asp-validation-for="ProfileForm.Phone" class="text-danger small"></span>
+                            <div class="form-text small">10-digit Indian mobile number (required on Admin Login screen).</div>
+                        </div>
+
+                        <div class="d-flex justify-content-end pt-2 border-top">
+                            <button type="submit" class="btn btn-success text-white px-4 fw-semibold">
+                                <i class="cil-save me-1"></i> Save Profile Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Card: Change Password -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h6 class="fw-bold mb-0 text-dark">
+                        <i class="cil-lock-locked text-danger me-2"></i>Change Account Password
+                    </h6>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-controller="Settings" asp-action="ChangeAdminPassword" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <div class="mb-3">
+                            <label asp-for="PasswordForm.CurrentPassword" class="form-label small fw-semibold text-secondary">Current Password <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input asp-for="PasswordForm.CurrentPassword" type="password" id="adminCurrPwd" class="form-control" required />
+                                <button class="btn btn-outline-secondary btn-password-toggle" type="button" data-target="adminCurrPwd" title="Show password">
+                                    <i class="cil-low-vision icon-show"></i>
+                                    <i class="cil-eye-slash icon-hide d-none"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="PasswordForm.CurrentPassword" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="PasswordForm.NewPassword" class="form-label small fw-semibold text-secondary">New Password <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input asp-for="PasswordForm.NewPassword" type="password" id="adminNewPwd" class="form-control" minlength="8" required />
+                                <button class="btn btn-outline-secondary btn-password-toggle" type="button" data-target="adminNewPwd" title="Show password">
+                                    <i class="cil-low-vision icon-show"></i>
+                                    <i class="cil-eye-slash icon-hide d-none"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="PasswordForm.NewPassword" class="text-danger small"></span>
+                            <div class="form-text small">Minimum 8 characters. Must differ from your current password.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="PasswordForm.ConfirmNewPassword" class="form-label small fw-semibold text-secondary">Confirm New Password <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input asp-for="PasswordForm.ConfirmNewPassword" type="password" id="adminConfirmPwd" class="form-control" minlength="8" required />
+                                <button class="btn btn-outline-secondary btn-password-toggle" type="button" data-target="adminConfirmPwd" title="Show password">
+                                    <i class="cil-low-vision icon-show"></i>
+                                    <i class="cil-eye-slash icon-hide d-none"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="PasswordForm.ConfirmNewPassword" class="text-danger small"></span>
+                        </div>
+
+                        <div class="d-flex justify-content-end pt-2 border-top">
+                            <button type="submit" class="btn btn-danger text-white px-4 fw-semibold">
+                                <i class="cil-lock-locked me-1"></i> Update Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

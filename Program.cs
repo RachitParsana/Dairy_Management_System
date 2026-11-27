@@ -86,13 +86,15 @@ namespace Dairy_Management_System
             // Register Centralized SQL Connection Factory (Enforcing least-privilege db_dms_app execution boundary)
             builder.Services.AddSingleton<ISqlConnectionFactory, SqlConnectionFactory>();
 
-            // Register SQL Server ADO.NET Authentication Repository
+            // Register SQL Server ADO.NET Authentication & Account Management Repository
             builder.Services.AddScoped<IUserAuthRepository>(sp => new UserAuthRepository(
                 sp.GetRequiredService<ISqlConnectionFactory>(),
                 sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<UserAuthRepository>>()));
+            builder.Services.AddScoped<IUserAccountRepository>(sp => (IUserAccountRepository)sp.GetRequiredService<IUserAuthRepository>());
 
-            // Register Authentication Service
+            // Register Authentication & Account Management Service
             builder.Services.AddScoped<IUserAuthService, UserAuthService>();
+            builder.Services.AddScoped<IUserAccountService>(sp => (IUserAccountService)sp.GetRequiredService<IUserAuthService>());
 
             // Register Customer Management ADO.NET Repositories
             builder.Services.AddScoped<ICustomerRepository>(sp => new CustomerRepository(
@@ -113,9 +115,11 @@ namespace Dairy_Management_System
             builder.Services.AddScoped<IDailyMilkRepository>(sp => new DailyMilkRepository(
                 sp.GetRequiredService<ISqlConnectionFactory>(),
                 sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<DailyMilkRepository>>()));
+            builder.Services.AddScoped<IDailyMilkBatchAdminRepository>(sp => (IDailyMilkBatchAdminRepository)sp.GetRequiredService<IDailyMilkRepository>());
 
             // Register Daily Milk Management Application Service
             builder.Services.AddScoped<IDailyMilkService, DailyMilkService>();
+            builder.Services.AddScoped<IDailyMilkBatchAdminService>(sp => (IDailyMilkBatchAdminService)sp.GetRequiredService<IDailyMilkService>());
 
             // Register Monthly Billing & Payments ADO.NET Repository
             builder.Services.AddScoped<IBillingRepository>(sp => new BillingRepository(
@@ -125,11 +129,13 @@ namespace Dairy_Management_System
             // Register Monthly Billing & Payments Application Service
             builder.Services.AddScoped<IBillingService, BillingService>();
 
-            // Register Route Lookup ADO.NET Repository & Application Service
+            // Register Route Lookup & Management ADO.NET Repository & Application Service
             builder.Services.AddScoped<IRouteRepository>(sp => new RouteRepository(
                 sp.GetRequiredService<ISqlConnectionFactory>(),
                 sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<RouteRepository>>()));
+            builder.Services.AddScoped<IRouteManagementRepository>(sp => (IRouteManagementRepository)sp.GetRequiredService<IRouteRepository>());
             builder.Services.AddScoped<IRouteService, RouteService>();
+            builder.Services.AddScoped<IRouteManagementService>(sp => (IRouteManagementService)sp.GetRequiredService<IRouteService>());
 
             // Register Delivery Boy & Compensation ADO.NET Repositories
             builder.Services.AddScoped<IDeliveryBoyRepository>(sp => new DeliveryBoyRepository(
@@ -215,15 +221,23 @@ namespace Dairy_Management_System
         private static readonly string[] DeliveryBoyBasePaths =
         {
             "/Home/Privacy",
-            "/DailyMilk",
+            "/DailyMilk/Index",
+            "/DailyMilk/MyCustomers",
+            "/DailyMilk/SaveDraft",
+            "/DailyMilk/Submit",
             "/Notification/DeliveryBoyNotifications",
+            "/Notification/Acknowledge",
+            "/Notification/DismissPopup",
+            "/Notification/MarkAllRead",
             "/Settings/DeliveryBoySettings",
+            "/Settings/SavePreferences",
             "/Settings/Profile"
         };
 
         /// <summary>
         /// Evaluates whether an HTTP request path targets a Delivery Boy portal route,
-        /// strictly enforcing segment boundaries ('/').
+        /// strictly enforcing segment boundaries ('/') so Admin actions sharing a controller
+        /// (such as /DailyMilk/AdminIndex or /Notification/Broadcast) route to AdminLogin.
         /// </summary>
         /// <param name="path">The HTTP request path.</param>
         /// <returns>True if the path exactly matches or is a subsegment of a Delivery Boy route.</returns>
@@ -232,6 +246,12 @@ namespace Dairy_Management_System
             if (string.IsNullOrWhiteSpace(path))
             {
                 return false;
+            }
+
+            // Default controller index /DailyMilk (or /DailyMilk/) serves DeliveryBoy runsheet
+            if (string.Equals(path.TrimEnd('/'), "/DailyMilk", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
             }
 
             foreach (var basePath in DeliveryBoyBasePaths)

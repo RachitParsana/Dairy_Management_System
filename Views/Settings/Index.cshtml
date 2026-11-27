@@ -2,6 +2,7 @@
 @{
     Layout = "_LayoutAdmin";
     ViewData["Title"] = "System Settings & Enterprise Configuration";
+    ViewData["ActiveMenu"] = "Settings";
 }
 
 <div class="container-fluid px-4 py-3">
@@ -21,7 +22,10 @@
                 Manage dairy operational parameters, enterprise contacts, and delivery shift cutoffs.
             </p>
         </div>
-        <div class="col-md-5 text-md-end mt-3 mt-md-0">
+        <div class="col-md-5 text-md-end mt-3 mt-md-0 d-flex justify-content-md-end align-items-center gap-2 flex-wrap">
+            <a asp-action="AdminProfile" class="btn btn-outline-success btn-sm">
+                <i class="cil-user me-1"></i> My Profile &amp; Password
+            </a>
             <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">
                 <i class="cil-check-circle me-1"></i> Live Audit Enabled
             </span>
@@ -183,10 +187,13 @@
                         <p class="text-muted small mb-4">
                             All updates are written atomically to the application settings repository with your administrative user credentials logged for audit compliance.
                         </p>
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 flex-wrap">
                             <button type="submit" class="btn btn-success px-4 py-2 fw-semibold text-white shadow-sm">
                                 <i class="cil-save me-1"></i> Save Enterprise Settings
                             </button>
+                            <a asp-controller="Route" asp-action="Index" class="btn btn-outline-success px-3 py-2">
+                                <i class="cil-location-pin me-1"></i> Manage Delivery Routes
+                            </a>
                             <a asp-action="Index" class="btn btn-outline-secondary px-3 py-2">
                                 <i class="cil-reload me-1"></i> Discard
                             </a>

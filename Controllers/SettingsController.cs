@@ -1,28 +1,34 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using Dairy_Management_System.Data;
+using Dairy_Management_System.Models.Auth;
 using Dairy_Management_System.Models.DeliveryBoy;
 using Dairy_Management_System.Models.Settings;
 using Dairy_Management_System.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Dairy_Management_System.Controllers
 {
     /// <summary>
-    /// Controller managing administrative enterprise configurations and delivery partner field preferences.
-    /// Strictly role-partitioned: Enterprise settings are Admin-only; preferences and profile are DeliveryBoy-only.
+    /// Controller managing administrative enterprise configurations, Admin profile/password,
+    /// and delivery partner field preferences, profile updates, and password management.
     /// </summary>
     [Authorize]
     public class SettingsController : Controller
     {
         private readonly ISettingsService _settingsService;
         private readonly IDeliveryBoyService _deliveryBoyService;
+        private readonly IUserAccountService? _userAccountService;
         private readonly ISqlConnectionFactory _connectionFactory;
         private readonly ILogger<SettingsController> _logger;
 
@@ -31,14 +37,51 @@ namespace Dairy_Management_System.Controllers
             IDeliveryBoyService deliveryBoyService,
             ISqlConnectionFactory connectionFactory,
             ILogger<SettingsController> logger)
+            : this(settingsService, deliveryBoyService, null, connectionFactory, logger)
+        {
+        }
+
+        [ActivatorUtilitiesConstructor]
+        public SettingsController(
+            ISettingsService settingsService,
+            IDeliveryBoyService deliveryBoyService,
+            IUserAccountService? userAccountService,
+            ISqlConnectionFactory connectionFactory,
+            ILogger<SettingsController> logger)
         {
             _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
             _deliveryBoyService = deliveryBoyService ?? throw new ArgumentNullException(nameof(deliveryBoyService));
+            _userAccountService = userAccountService;
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        #region Helper: Claims Identity
+        #region Helper: Claims Identity & Cookie Refresh
+
+        private async Task RefreshUserClaimsAsync(AuthenticatedUser user)
+        {
+            var claims = new List<Claim>
+            {
+                new(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                new(ClaimTypes.Name, user.Username),
+                new(ClaimTypes.GivenName, user.FullName),
+                new(ClaimTypes.MobilePhone, user.Phone),
+                new(ClaimTypes.Role, user.Role)
+            };
+
+            var existingAuth = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            bool isPersistent = existingAuth.Properties?.IsPersistent ?? false;
+            var props = existingAuth.Properties ?? new AuthenticationProperties
+            {
+                IsPersistent = isPersistent,
+                AllowRefresh = true,
+                IssuedUtc = DateTimeOffset.UtcNow,
+                ExpiresUtc = isPersistent ? DateTimeOffset.UtcNow.AddDays(7) : DateTimeOffset.UtcNow.AddHours(10)
+            };
+
+            var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme));
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, props);
+        }
 
         private int GetCurrentUserId()
         {
@@ -129,6 +172,150 @@ namespace Dairy_Management_System.Controllers
             }
 
             return RedirectToAction(nameof(Index));
+        }
+
+        #endregion
+
+        #region Admin Profile & Password Management
+
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AdminProfile(CancellationToken ct)
+        {
+            int userId = GetCurrentUserId();
+            if (userId <= 0)
+            {
+                return RedirectToAction("AdminLogin", "Auth");
+            }
+
+            if (_userAccountService == null)
+            {
+                TempData["ErrorMessage"] = "Account management service is currently unavailable.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var profile = await _userAccountService.GetProfileByIdAsync(userId, ct).ConfigureAwait(false);
+            if (profile == null)
+            {
+                TempData["ErrorMessage"] = "Administrator account record not found.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var vm = new AdminProfilePageViewModel
+            {
+                UserId = profile.UserId,
+                Role = profile.Role,
+                IsActive = profile.IsActive,
+                CreatedAt = profile.CreatedAt,
+                LastLoginAt = profile.LastLoginAt,
+                ProfileForm = new AdminProfileUpdateModel
+                {
+                    Username = profile.Username,
+                    FullName = profile.FullName,
+                    Phone = profile.Phone
+                }
+            };
+
+            return View(vm);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateAdminProfile([Bind(Prefix = "ProfileForm")] AdminProfileUpdateModel model, CancellationToken ct)
+        {
+            int userId = GetCurrentUserId();
+            if (userId <= 0)
+            {
+                return RedirectToAction("AdminLogin", "Auth");
+            }
+
+            if (_userAccountService == null)
+            {
+                TempData["ErrorMessage"] = "Account management service is unavailable.";
+                return RedirectToAction(nameof(AdminProfile));
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var profile = await _userAccountService.GetProfileByIdAsync(userId, ct).ConfigureAwait(false);
+                var vm = new AdminProfilePageViewModel
+                {
+                    UserId = userId,
+                    Role = profile?.Role ?? "Admin",
+                    IsActive = profile?.IsActive ?? true,
+                    CreatedAt = profile?.CreatedAt ?? DateTime.UtcNow,
+                    LastLoginAt = profile?.LastLoginAt,
+                    ProfileForm = model
+                };
+                return View("AdminProfile", vm);
+            }
+
+            var result = await _userAccountService.UpdateAdminProfileAsync(userId, model, ct).ConfigureAwait(false);
+            if (!result.Succeeded)
+            {
+                TempData["ErrorMessage"] = result.ErrorMessage ?? "Could not update profile.";
+                return RedirectToAction(nameof(AdminProfile));
+            }
+
+            if (result.UpdatedUser != null)
+            {
+                await RefreshUserClaimsAsync(result.UpdatedUser);
+            }
+
+            TempData["SuccessMessage"] = result.Message ?? "Profile updated successfully.";
+            return RedirectToAction(nameof(AdminProfile));
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangeAdminPassword([Bind(Prefix = "PasswordForm")] ChangePasswordViewModel model, CancellationToken ct)
+        {
+            int userId = GetCurrentUserId();
+            if (userId <= 0)
+            {
+                return RedirectToAction("AdminLogin", "Auth");
+            }
+
+            if (_userAccountService == null)
+            {
+                TempData["ErrorMessage"] = "Account management service is unavailable.";
+                return RedirectToAction(nameof(AdminProfile));
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var profile = await _userAccountService.GetProfileByIdAsync(userId, ct).ConfigureAwait(false);
+                var vm = new AdminProfilePageViewModel
+                {
+                    UserId = userId,
+                    Role = profile?.Role ?? "Admin",
+                    IsActive = profile?.IsActive ?? true,
+                    CreatedAt = profile?.CreatedAt ?? DateTime.UtcNow,
+                    LastLoginAt = profile?.LastLoginAt,
+                    ProfileForm = new AdminProfileUpdateModel
+                    {
+                        Username = profile?.Username ?? string.Empty,
+                        FullName = profile?.FullName ?? string.Empty,
+                        Phone = profile?.Phone ?? string.Empty
+                    },
+                    PasswordForm = new ChangePasswordViewModel()
+                };
+                return View("AdminProfile", vm);
+            }
+
+            var result = await _userAccountService.ChangeOwnPasswordAsync(userId, model, ct).ConfigureAwait(false);
+            if (!result.Succeeded)
+            {
+                TempData["ErrorMessage"] = result.ErrorMessage ?? "Password change failed.";
+            }
+            else
+            {
+                TempData["SuccessMessage"] = result.Message ?? "Password changed successfully.";
+            }
+
+            return RedirectToAction(nameof(AdminProfile));
         }
 
         #endregion
@@ -224,6 +411,84 @@ namespace Dairy_Management_System.Controllers
                 TempData["ErrorMessage"] = "An error occurred while loading your profile.";
                 return RedirectToAction("Privacy", "Home");
             }
+        }
+
+        [HttpPost("Settings/Profile/UpdateProfile")]
+        [Authorize(Roles = "DeliveryBoy")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateDeliveryBoyProfile(DeliveryBoyProfileUpdateModel model, CancellationToken ct)
+        {
+            int userId = GetCurrentUserId();
+            if (userId <= 0)
+            {
+                return RedirectToAction("DeliveryBoyLogin", "Auth");
+            }
+
+            if (_userAccountService == null)
+            {
+                TempData["ErrorMessage"] = "Account management service is unavailable.";
+                return RedirectToAction(nameof(Profile));
+            }
+
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = "Please provide a valid Full Name and 10-digit registered mobile number.";
+                return RedirectToAction(nameof(Profile));
+            }
+
+            var result = await _userAccountService.UpdateDeliveryBoyProfileAsync(userId, model, ct).ConfigureAwait(false);
+            if (!result.Succeeded)
+            {
+                TempData["ErrorMessage"] = result.ErrorMessage ?? "Failed to update profile.";
+            }
+            else
+            {
+                if (result.UpdatedUser != null)
+                {
+                    await RefreshUserClaimsAsync(result.UpdatedUser);
+                }
+                TempData["SuccessMessage"] = result.Message ?? "Your profile details have been updated.";
+            }
+
+            return RedirectToAction(nameof(Profile));
+        }
+
+        [HttpPost("Settings/Profile/ChangePassword")]
+        [Authorize(Roles = "DeliveryBoy")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangeDeliveryBoyPassword(ChangePasswordViewModel model, CancellationToken ct)
+        {
+            int userId = GetCurrentUserId();
+            if (userId <= 0)
+            {
+                return RedirectToAction("DeliveryBoyLogin", "Auth");
+            }
+
+            if (_userAccountService == null)
+            {
+                TempData["ErrorMessage"] = "Account management service is unavailable.";
+                return RedirectToAction(nameof(Profile));
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var errors = System.Linq.Enumerable.SelectMany(ModelState.Values, v => v.Errors);
+                var firstError = System.Linq.Enumerable.FirstOrDefault(errors)?.ErrorMessage;
+                TempData["ErrorMessage"] = firstError ?? "Please enter valid current and matching new passwords (minimum 8 characters).";
+                return RedirectToAction(nameof(Profile));
+            }
+
+            var result = await _userAccountService.ChangeOwnPasswordAsync(userId, model, ct).ConfigureAwait(false);
+            if (!result.Succeeded)
+            {
+                TempData["ErrorMessage"] = result.ErrorMessage ?? "Failed to update password.";
+            }
+            else
+            {
+                TempData["SuccessMessage"] = result.Message ?? "Your password has been changed successfully.";
+            }
+
+            return RedirectToAction(nameof(Profile));
         }
 
         #endregion

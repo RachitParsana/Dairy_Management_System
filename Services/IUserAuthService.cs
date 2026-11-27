@@ -1,4 +1,5 @@
 using Dairy_Management_System.Models.Auth;
+using Dairy_Management_System.Models.Settings;
 
 namespace Dairy_Management_System.Services
 {
@@ -27,5 +28,17 @@ namespace Dairy_Management_System.Services
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>AuthResult containing AuthenticatedUser on success, or safe failure details.</returns>
         Task<AuthResult> AuthenticateDeliveryBoyAsync(string phone, string password, CancellationToken cancellationToken = default);
+    }
+
+    /// <summary>
+    /// Service contract for self-service user profile updates, password changes, and admin agent password resets.
+    /// </summary>
+    public interface IUserAccountService
+    {
+        Task<UserProfileDto?> GetProfileByIdAsync(int userId, CancellationToken cancellationToken = default);
+        Task<UserProfileOperationResult> UpdateAdminProfileAsync(int userId, AdminProfileUpdateModel model, CancellationToken cancellationToken = default);
+        Task<UserProfileOperationResult> UpdateDeliveryBoyProfileAsync(int userId, DeliveryBoyProfileUpdateModel model, CancellationToken cancellationToken = default);
+        Task<UserProfileOperationResult> ChangeOwnPasswordAsync(int userId, ChangePasswordViewModel model, CancellationToken cancellationToken = default);
+        Task<UserProfileOperationResult> ResetDeliveryBoyPasswordAsync(int deliveryBoyId, string newPassword, int adminUserId, CancellationToken cancellationToken = default);
     }
 }

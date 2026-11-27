@@ -62,7 +62,7 @@
         <!-- Strict 8-Item Sidebar Navigation Order -->
         <ul class="sidebar-nav" data-coreui="navigation">
             <li class="nav-item">
-                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "Dashboard" || ViewData["ActiveMenu"] == null ? "active" : "")" href="~/Home/Privacy">
+                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "Dashboard" ? "active" : "")" href="~/Home/Privacy">
                     <i class="nav-icon cil-speedometer"></i> Dashboard
                 </a>
             </li>

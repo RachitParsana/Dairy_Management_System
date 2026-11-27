@@ -1,6 +1,8 @@
 using Dairy_Management_System.Models.Auth;
+using Dairy_Management_System.Models.Settings;
 using Dairy_Management_System.Repositories;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.SqlClient;
 
 namespace Dairy_Management_System.Services
 {
@@ -9,9 +11,10 @@ namespace Dairy_Management_System.Services
     /// Utilizes ASP.NET Core built-in PasswordHasher for timing-attack-resilient RFC 2898 PBKDF2 verification.
     /// Safely handles database exceptions and enforces fail-closed login audit persistence.
     /// </summary>
-    public class UserAuthService : IUserAuthService
+    public class UserAuthService : IUserAuthService, IUserAccountService
     {
         private readonly IUserAuthRepository? _userAuthRepository;
+        private readonly IUserAccountRepository? _userAccountRepository;
         private readonly IPasswordHasher<UserAuthRecord> _passwordHasher;
         private readonly ILogger<UserAuthService> _logger;
 
@@ -21,6 +24,7 @@ namespace Dairy_Management_System.Services
             ILogger<UserAuthService> logger)
         {
             _userAuthRepository = userAuthRepository;
+            _userAccountRepository = userAuthRepository as IUserAccountRepository;
             _passwordHasher = passwordHasher;
             _logger = logger;
         }
@@ -259,6 +263,199 @@ namespace Dairy_Management_System.Services
             };
 
             return AuthResult.Success(authenticatedUser);
+        }
+
+        public async Task<UserProfileDto?> GetProfileByIdAsync(int userId, CancellationToken cancellationToken = default)
+        {
+            if (_userAccountRepository == null || userId <= 0)
+            {
+                return null;
+            }
+            return await _userAccountRepository.GetProfileByIdAsync(userId, cancellationToken).ConfigureAwait(false);
+        }
+
+        public async Task<UserProfileOperationResult> UpdateAdminProfileAsync(int userId, AdminProfileUpdateModel model, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(model);
+            if (_userAccountRepository == null)
+            {
+                return UserProfileOperationResult.Failure("User account repository is unavailable.");
+            }
+
+            try
+            {
+                await _userAccountRepository.UpdateOwnProfileAsync(
+                    userId,
+                    model.Username,
+                    model.FullName,
+                    model.Phone,
+                    null,
+                    cancellationToken).ConfigureAwait(false);
+
+                var updated = await _userAccountRepository.GetProfileByIdAsync(userId, cancellationToken).ConfigureAwait(false);
+                var authUser = updated == null
+                    ? null
+                    : new AuthenticatedUser
+                    {
+                        UserId = updated.UserId,
+                        Username = updated.Username,
+                        FullName = updated.FullName,
+                        Phone = updated.Phone,
+                        Role = updated.Role,
+                        IsActive = updated.IsActive
+                    };
+
+                return UserProfileOperationResult.Success("Administrator profile updated successfully.", authUser);
+            }
+            catch (SqlException ex) when (ex.Number is >= 50070 and <= 50079 or 2627 or 2601)
+            {
+                _logger.LogWarning(ex, "Validation failure updating Admin profile for UserId {UserId}.", userId);
+                string message = ex.Number is 2627 or 2601
+                    ? "Username or mobile number is already in use by another account."
+                    : ex.Message;
+                return UserProfileOperationResult.Failure(message);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogError(ex, "Error updating Admin profile for UserId {UserId}.", userId);
+                return UserProfileOperationResult.Failure("An error occurred while updating your profile.");
+            }
+        }
+
+        public async Task<UserProfileOperationResult> UpdateDeliveryBoyProfileAsync(int userId, DeliveryBoyProfileUpdateModel model, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(model);
+            if (_userAccountRepository == null)
+            {
+                return UserProfileOperationResult.Failure("User account repository is unavailable.");
+            }
+
+            try
+            {
+                await _userAccountRepository.UpdateOwnProfileAsync(
+                    userId,
+                    null,
+                    model.FullName,
+                    model.Phone,
+                    model.VehicleNumber,
+                    cancellationToken).ConfigureAwait(false);
+
+                var updated = await _userAccountRepository.GetProfileByIdAsync(userId, cancellationToken).ConfigureAwait(false);
+                var authUser = updated == null
+                    ? null
+                    : new AuthenticatedUser
+                    {
+                        UserId = updated.UserId,
+                        Username = updated.Username,
+                        FullName = updated.FullName,
+                        Phone = updated.Phone,
+                        Role = updated.Role,
+                        IsActive = updated.IsActive
+                    };
+
+                return UserProfileOperationResult.Success("Delivery partner profile updated successfully.", authUser);
+            }
+            catch (SqlException ex) when (ex.Number is >= 50070 and <= 50079 or 2627 or 2601)
+            {
+                _logger.LogWarning(ex, "Validation failure updating DeliveryBoy profile for UserId {UserId}.", userId);
+                string message = ex.Number is 2627 or 2601
+                    ? "This mobile number is already registered to another user."
+                    : ex.Message;
+                return UserProfileOperationResult.Failure(message);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogError(ex, "Error updating DeliveryBoy profile for UserId {UserId}.", userId);
+                return UserProfileOperationResult.Failure("An error occurred while updating your profile.");
+            }
+        }
+
+        public async Task<UserProfileOperationResult> ChangeOwnPasswordAsync(int userId, ChangePasswordViewModel model, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(model);
+            if (_userAccountRepository == null)
+            {
+                return UserProfileOperationResult.Failure("User account repository is unavailable.");
+            }
+
+            if (string.IsNullOrWhiteSpace(model.CurrentPassword) || string.IsNullOrWhiteSpace(model.NewPassword) || model.NewPassword.Length < 8)
+            {
+                return UserProfileOperationResult.Failure("Current password and a new password of at least 8 characters are required.");
+            }
+
+            if (!string.Equals(model.NewPassword, model.ConfirmNewPassword, StringComparison.Ordinal))
+            {
+                return UserProfileOperationResult.Failure("New password and confirmation do not match.");
+            }
+
+            if (string.Equals(model.CurrentPassword, model.NewPassword, StringComparison.Ordinal))
+            {
+                return UserProfileOperationResult.Failure("New password must be different from your current password.");
+            }
+
+            try
+            {
+                var userRecord = await _userAccountRepository.GetAuthByIdAsync(userId, cancellationToken).ConfigureAwait(false);
+                if (userRecord == null || !userRecord.IsActive)
+                {
+                    return UserProfileOperationResult.Failure("Active user account not found.");
+                }
+
+                var verifyResult = _passwordHasher.VerifyHashedPassword(userRecord, userRecord.PasswordHash, model.CurrentPassword);
+                if (verifyResult == PasswordVerificationResult.Failed)
+                {
+                    _logger.LogWarning("Password change denied for UserId {UserId}: Current password mismatch.", userId);
+                    return UserProfileOperationResult.Failure("Current password is incorrect.");
+                }
+
+                string newHash = _passwordHasher.HashPassword(userRecord, model.NewPassword);
+                await _userAccountRepository.UpdatePasswordHashAsync(userId, newHash, userId, cancellationToken).ConfigureAwait(false);
+
+                _logger.LogInformation("User {UserId} ({Role}) successfully changed their password.", userId, userRecord.Role);
+                return UserProfileOperationResult.Success("Password updated successfully. Please use your new password on your next sign-in.");
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogError(ex, "Unexpected error changing password for UserId {UserId}.", userId);
+                return UserProfileOperationResult.Failure("An error occurred while changing your password.");
+            }
+        }
+
+        public async Task<UserProfileOperationResult> ResetDeliveryBoyPasswordAsync(int deliveryBoyId, string newPassword, int adminUserId, CancellationToken cancellationToken = default)
+        {
+            if (_userAccountRepository == null)
+            {
+                return UserProfileOperationResult.Failure("User account repository is unavailable.");
+            }
+
+            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 8)
+            {
+                return UserProfileOperationResult.Failure("New password must be at least 8 characters long.");
+            }
+
+            try
+            {
+                var userRecord = await _userAccountRepository.GetAuthByDeliveryBoyIdAsync(deliveryBoyId, cancellationToken).ConfigureAwait(false);
+                if (userRecord == null)
+                {
+                    return UserProfileOperationResult.Failure("Delivery boy user account not found.");
+                }
+                if (!userRecord.IsActive)
+                {
+                    return UserProfileOperationResult.Failure("Cannot reset password for an inactive delivery boy. Reactivate the agent first.");
+                }
+
+                string newHash = _passwordHasher.HashPassword(userRecord, newPassword);
+                await _userAccountRepository.UpdatePasswordHashAsync(userRecord.UserId, newHash, adminUserId, cancellationToken).ConfigureAwait(false);
+
+                _logger.LogInformation("Admin {AdminUserId} reset password for DeliveryBoy {DeliveryBoyId} (UserId {UserId}).", adminUserId, deliveryBoyId, userRecord.UserId);
+                return UserProfileOperationResult.Success($"Password reset successfully for {userRecord.FullName}.");
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogError(ex, "Unexpected error resetting password for DeliveryBoyId {DeliveryBoyId}.", deliveryBoyId);
+                return UserProfileOperationResult.Failure("An error occurred while resetting the delivery boy's password.");
+            }
         }
     }
 }

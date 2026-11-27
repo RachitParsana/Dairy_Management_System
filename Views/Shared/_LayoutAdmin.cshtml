@@ -58,7 +58,7 @@
         <!-- Strict 10-Item Sidebar Navigation Order -->
         <ul class="sidebar-nav" data-coreui="navigation">
             <li class="nav-item">
-                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "Dashboard" || ViewData["ActiveMenu"] == null ? "active" : "")" href="~/Home/Index">
+                <a class="nav-link @(ViewData["ActiveMenu"]?.ToString() == "Dashboard" ? "active" : "")" href="~/Home/Index">
                     <i class="nav-icon cil-speedometer"></i> Dashboard
                 </a>
             </li>
@@ -201,6 +201,7 @@
                                 }
                             </li>
                             <li><hr class="dropdown-divider my-1"></li>
+                            <li><a class="dropdown-item small" href="~/Settings/AdminProfile"><i class="cil-user me-2"></i> My Profile &amp; Password</a></li>
                             <li><a class="dropdown-item small" href="~/Settings"><i class="cil-settings me-2"></i> Settings</a></li>
                             <li><a class="dropdown-item small" href="~/HelpSupport"><i class="cil-info me-2"></i> Help &amp; Support</a></li>
                             <li><hr class="dropdown-divider my-1"></li>
