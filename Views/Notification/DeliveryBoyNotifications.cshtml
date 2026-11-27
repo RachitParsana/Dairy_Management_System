@@ -17,12 +17,36 @@
         </nav>
         <h4 class="mb-0 fw-bold text-dark"><i class="cil-bell text-primary me-2"></i>Route Bulletins &amp; Alerts</h4>
     </div>
-    <div>
-        <span class="badge @(unreadCount > 0 ? "bg-primary text-white" : "bg-light text-secondary border") px-3 py-2 font-tabular">
+    <div class="d-flex align-items-center gap-2">
+        <span id="unreadAlertsBadge" data-unread-count="@unreadCount" class="badge @(unreadCount > 0 ? "bg-primary text-white" : "bg-light text-secondary border") px-3 py-2 font-tabular">
             @unreadCount Unread Alerts
         </span>
+        @if (unreadCount > 0)
+        {
+            <form asp-controller="Notification" asp-action="MarkAllRead" method="post" id="markAllReadForm" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-primary btn-sm">
+                    <i class="cil-check-double me-1"></i> Mark All Read
+                </button>
+            </form>
+        }
     </div>
 </div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-3" role="alert">
+        <i class="cil-check-circle me-2"></i> @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-coreui-dismiss="alert" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 mb-3" role="alert">
+        <i class="cil-warning me-2"></i> @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-coreui-dismiss="alert" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
 
 <div class="card border-0 bg-white shadow-sm mb-4">
     <div class="card-body p-3 p-md-4">
@@ -174,6 +198,22 @@
                             const card = document.getElementById('notif-card-' + notifId) || btn.closest('.card');
                             if (card) {
                                 card.classList.remove('border-start', 'border-4', 'border-primary');
+                            }
+
+                            // Update top unread counter badge
+                            const unreadBadge = document.getElementById('unreadAlertsBadge');
+                            if (unreadBadge) {
+                                let cur = parseInt(unreadBadge.getAttribute('data-unread-count') || '0', 10);
+                                let next = Math.max(0, cur - 1);
+                                unreadBadge.setAttribute('data-unread-count', String(next));
+                                unreadBadge.textContent = next + ' Unread Alerts';
+                                if (next === 0) {
+                                    unreadBadge.className = 'badge bg-light text-secondary border px-3 py-2 font-tabular';
+                                    const markAllForm = document.getElementById('markAllReadForm');
+                                    if (markAllForm) {
+                                        markAllForm.classList.add('d-none');
+                                    }
+                                }
                             }
 
                             // Replace button with text

@@ -434,7 +434,7 @@
                     <h5 class="modal-title fw-bold" id="deactivateModalLabel">
                         <i class="cil-user-x me-2"></i> Deactivate Customer
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-coreui-dismiss="modal" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="alert alert-light border small mb-3">
@@ -452,7 +452,7 @@
                     <!-- Live Delivery Check Notification -->
                     <div id="deactivateDeliveryWarning" class="alert alert-warning small py-2 d-none">
                         <i class="cil-warning me-1"></i>
-                        <span id="deactivateDeliveryWarningText">Today's delivery has already been logged. Deactivation will take effect after today's ledger.</span>
+                        <span id="deactivateDeliveryWarningText">Recorded deliveries exist on or after this deactivation date. Check the confirmation box below to preserve billed deliveries and terminate service.</span>
                     </div>
 
                     <!-- Reason -->
@@ -462,14 +462,14 @@
                     </div>
 
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="ConfirmDeliveryLogged" value="true" id="chkConfirmDelivery" />
+                        <input class="form-check-input" type="checkbox" name="ConfirmDeliveryOnDeactivationDate" value="true" id="chkConfirmDelivery" />
                         <label class="form-check-label small text-muted" for="chkConfirmDelivery">
-                            I understand that pending daily runsheet deliveries will cease immediately.
+                            I confirm preserving any recorded/billed deliveries on or after the deactivation date and terminating service.
                         </label>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-coreui-dismiss="modal" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-danger btn-sm px-4">
                         <i class="cil-ban me-1"></i> Deactivate Now
                     </button>
@@ -492,7 +492,7 @@
                     <h5 class="modal-title fw-bold" id="reactivateModalLabel">
                         <i class="cil-reload me-2"></i> Reactivate Customer
                     </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-coreui-dismiss="modal" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="alert alert-light border small mb-3">
@@ -510,7 +510,7 @@
                     <!-- Target Route -->
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Delivery Route <span class="text-danger">*</span></label>
-                        <select name="NewRouteId" id="reactivateRouteId" class="form-select" required>
+                        <select name="RouteId" id="reactivateRouteId" class="form-select" required>
                             @foreach (var route in Model.RouteList)
                             {
                                 <option value="@route.RouteId">@route.RouteCode - @route.RouteName</option>
@@ -521,13 +521,13 @@
                     <!-- Delivery Sequence -->
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Delivery Sequence <span class="text-danger">*</span></label>
-                        <input type="number" name="NewSequence" id="reactivateSequence" class="form-control" value="1" min="1" required />
+                        <input type="number" name="DeliverySequence" id="reactivateSequence" class="form-control" value="1" min="0" required />
                     </div>
 
                     <!-- Target Delivery Boy -->
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Delivery Agent <span class="text-danger">*</span></label>
-                        <select name="NewDeliveryBoyId" class="form-select" required>
+                        <select name="DeliveryBoyId" class="form-select" required>
                             @foreach (var dboy in Model.DeliveryBoyList)
                             {
                                 <option value="@dboy.DeliveryBoyId">@dboy.FullName (@dboy.Phone)</option>
@@ -536,7 +536,7 @@
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-coreui-dismiss="modal" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-success btn-sm px-4 text-white">
                         <i class="cil-check me-1"></i> Reactivate Customer
                     </button>
@@ -793,6 +793,18 @@
         document.getElementById("deactivateCustomerName").innerText = customerName;
         document.getElementById("deactivateCustomerCode").innerText = customerCode;
 
+        const reasonEl = document.querySelector('#deactivateForm textarea[name="Reason"]');
+        if (reasonEl) reasonEl.value = "";
+
+        const chkConfirm = document.getElementById("chkConfirmDelivery");
+        if (chkConfirm) {
+            chkConfirm.checked = false;
+            chkConfirm.required = false;
+        }
+
+        const warning = document.getElementById("deactivateDeliveryWarning");
+        if (warning) warning.classList.add("d-none");
+
         const modalEl = document.getElementById("deactivateModal");
         const modal = new coreui.Modal(modalEl);
         modal.show();
@@ -804,27 +816,37 @@
         const customerId = document.getElementById("deactivateCustomerId").value;
         const date = document.getElementById("deactivateDate").value;
         const warning = document.getElementById("deactivateDeliveryWarning");
+        const chkConfirm = document.getElementById("chkConfirmDelivery");
 
         if (!customerId || !date) return;
 
-        fetch(`/Customer/CheckDeliveryOnDate?customerId=${customerId}&date=${date}`)
+        fetch(`/Customer/CheckDeliveryOnDate?customerId=${customerId}&date=${date}&includeFuture=true`)
             .then(res => res.json())
             .then(data => {
                 if (data.hasDelivery) {
                     warning.classList.remove("d-none");
+                    if (chkConfirm) chkConfirm.required = true;
                 } else {
                     warning.classList.add("d-none");
+                    if (chkConfirm) chkConfirm.required = false;
                 }
             })
-            .catch(() => warning.classList.add("d-none"));
+            .catch(() => {
+                warning.classList.add("d-none");
+                if (chkConfirm) chkConfirm.required = false;
+            });
     }
 
     function openReactivateModal(customerId, customerName, customerCode, routeId, sequence) {
         document.getElementById("reactivateCustomerId").value = customerId;
         document.getElementById("reactivateCustomerName").innerText = customerName;
         document.getElementById("reactivateCustomerCode").innerText = customerCode;
-        if (routeId) document.getElementById("reactivateRouteId").value = routeId;
-        if (sequence) document.getElementById("reactivateSequence").value = sequence;
+        if (routeId !== undefined && routeId !== null && routeId !== '') {
+            document.getElementById("reactivateRouteId").value = routeId;
+        }
+        if (sequence !== undefined && sequence !== null && sequence !== '') {
+            document.getElementById("reactivateSequence").value = sequence;
+        }
 
         const modalEl = document.getElementById("reactivateModal");
         const modal = new coreui.Modal(modalEl);

@@ -787,7 +787,10 @@
                         body: JSON.stringify(payload)
                     });
 
-                    const result = await response.json();
+                    const contentType = response.headers.get('content-type') || '';
+                    const result = contentType.includes('application/json')
+                        ? await response.json()
+                        : { success: false, message: 'Server returned HTTP ' + response.status + '. Please refresh and try again.' };
                     if (result.success) {
                         alert(result.message || 'Draft runsheet saved successfully.');
                         window.location.reload();
@@ -839,7 +842,10 @@
                         body: JSON.stringify(payload)
                     });
 
-                    const result = await response.json();
+                    const contentType = response.headers.get('content-type') || '';
+                    const result = contentType.includes('application/json')
+                        ? await response.json()
+                        : { success: false, message: 'Server returned HTTP ' + response.status + '. Please refresh and try again.' };
                     if (result.success) {
                         submitConfirmModal.hide();
                         alert('Shift Finalized: ' + (result.message || 'Entries locked and submitted successfully.'));

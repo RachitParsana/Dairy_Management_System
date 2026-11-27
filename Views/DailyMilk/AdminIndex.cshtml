@@ -7,6 +7,7 @@
 
     var criteria = (DailyMilkFilterCriteria)(ViewBag.FilterCriteria ?? new DailyMilkFilterCriteria());
     var summary = (DailyMilkSummaryViewModel)(ViewBag.Summary ?? new DailyMilkSummaryViewModel());
+    var shiftBatches = (IReadOnlyList<DailyMilkBatchAdminItemDto>)(ViewBag.ShiftBatches ?? Array.Empty<DailyMilkBatchAdminItemDto>());
     var deliveryBoys = (List<Dairy_Management_System.Models.Customer.DeliveryBoyLookupItem>)(ViewBag.DeliveryBoys ?? new List<Dairy_Management_System.Models.Customer.DeliveryBoyLookupItem>());
     var categories = (List<Dairy_Management_System.Models.DailyMilk.DailyMilkCategoryHeaderModel>)(ViewBag.Categories ?? new List<Dairy_Management_System.Models.DailyMilk.DailyMilkCategoryHeaderModel>());
 }
@@ -148,6 +149,121 @@
                     </div>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Shift Runsheet Lock & Unlock Control -->
+    <div class="card border-0 bg-white shadow-sm mb-4">
+        <div class="card-header bg-white py-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <i class="cil-lock-locked text-warning-emphasis fs-5"></i>
+                <div>
+                    <h6 class="mb-0 fw-bold text-dark">Delivery Boy Shift Lock &amp; Unlock Control</h6>
+                    <div class="extra-small text-muted">
+                        Unlock a finalized (submitted) shift batch back to Draft so the Delivery Boy can edit and re-submit entries on their runsheet.
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-outline-warning btn-sm text-dark fw-semibold" id="btnToggleAllLockedBatches" data-mode="date">
+                    <i class="cil-history me-1"></i> Show All Locked Shifts
+                </button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0" id="shiftBatchesTable">
+                <thead class="table-light extra-small text-uppercase text-secondary">
+                    <tr>
+                        <th class="ps-3">Batch</th>
+                        <th>Date &amp; Shift</th>
+                        <th>Delivery Boy</th>
+                        <th>Route</th>
+                        <th class="text-center">Entries</th>
+                        <th class="text-end">Total Qty / Amount</th>
+                        <th class="text-center">Lock Status</th>
+                        <th class="text-end pe-3">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="shiftBatchesBody">
+                    @if (shiftBatches.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-3 text-muted small">
+                                No shift batches recorded for the selected date filter. Click <strong>Show All Locked Shifts</strong> to view other locked dates.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var b in shiftBatches)
+                        {
+                            <tr>
+                                <td class="ps-3 font-tabular text-muted small">#@b.BatchId</td>
+                                <td>
+                                    <div class="font-tabular small fw-semibold text-dark">@b.EntryDate.ToString("dd-MMM-yyyy")</div>
+                                    <span class="badge @(b.Shift == "Evening" ? "bg-dark text-white" : "bg-primary-subtle text-primary border border-primary-subtle") extra-small">@b.Shift</span>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-dark small">@b.DeliveryBoyName</div>
+                                    <div class="extra-small text-muted font-tabular">@b.DeliveryBoyPhone</div>
+                                </td>
+                                <td class="small text-secondary">@b.RouteName</td>
+                                <td class="text-center extra-small font-tabular">
+                                    <span class="text-success fw-semibold">@b.CompletedCount C</span> &bull;
+                                    <span class="text-warning-emphasis fw-semibold">@b.PendingCount P</span> &bull;
+                                    <span class="text-danger fw-semibold">@b.NotDeliveredCount ND</span>
+                                </td>
+                                <td class="text-end font-tabular small">
+                                    <div class="fw-semibold text-primary">@b.TotalLiquidVolumeLitres.ToString("F2") L</div>
+                                    <div class="extra-small text-muted">₹@b.TotalAmount.ToString("N2")</div>
+                                </td>
+                                <td class="text-center">
+                                    @if (b.IsLocked)
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                            <i class="cil-lock-locked me-1"></i> Locked (Submitted)
+                                        </span>
+                                        @if (b.SubmittedAt.HasValue)
+                                        {
+                                            <div class="extra-small text-muted mt-1">@b.SubmittedAt.Value.ToLocalTime().ToString("dd-MMM HH:mm")</div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                                            <i class="cil-lock-unlocked me-1"></i> Unlocked (Draft)
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-end pe-3">
+                                    @if (b.CanUnlock)
+                                    {
+                                        <button type="button" class="btn btn-warning btn-sm text-dark fw-semibold btn-unlock-batch"
+                                                data-batch-id="@b.BatchId"
+                                                data-boy-name="@b.DeliveryBoyName"
+                                                data-entry-date="@b.EntryDate.ToString("dd-MMM-yyyy")"
+                                                data-shift="@b.Shift">
+                                            <i class="cil-lock-unlocked me-1"></i> Unlock
+                                        </button>
+                                    }
+                                    else if (b.HasPublishedBillLock)
+                                    {
+                                        <span class="badge bg-light text-secondary border extra-small" title="Cannot unlock: Published monthly bill covers this date">Published Bill Lock</span>
+                                    }
+                                    else if (b.HasFinalizedCompensationLock)
+                                    {
+                                        <span class="badge bg-light text-secondary border extra-small" title="Cannot unlock: Compensation finalized/paid">Payroll Lock</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted extra-small">Editable by Partner</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -459,8 +575,61 @@
                 </div>
             </div>
             <div class="modal-footer bg-light p-3">
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-coreui-dismiss="modal" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary btn-sm px-3" id="btnSubmitAuth">Authorize Delivery</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================================================================================== -->
+<!-- Modal: Unlock Submitted Delivery Batch -->
+<!-- ==================================================================================== -->
+<div class="modal fade" id="unlockBatchModal" tabindex="-1" aria-labelledby="unlockBatchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title fs-6 fw-bold" id="unlockBatchModalLabel">
+                    <i class="cil-lock-unlocked me-1"></i> Unlock Finalized Shift Runsheet
+                </h5>
+                <button type="button" class="btn-close" data-coreui-dismiss="modal" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="unlockBatchId" />
+
+                <div class="alert alert-warning border-warning-subtle small mb-3">
+                    Unlocking this batch changes its status from <strong>Submitted</strong> back to <strong>Draft</strong> so the delivery boy can update quantities and re-submit. Existing entries stay intact.
+                </div>
+
+                <div class="p-3 bg-light rounded border small mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">Batch ID:</span>
+                        <strong class="font-tabular" id="unlockModalBatchDisplay">-</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">Delivery Partner:</span>
+                        <strong id="unlockModalBoyName">-</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Date &amp; Shift:</span>
+                        <strong class="font-tabular" id="unlockModalDateShift">-</strong>
+                    </div>
+                </div>
+
+                <div class="mb-0">
+                    <label class="form-label small fw-semibold text-muted" for="unlockBatchReason">
+                        Unlock Reason / Audit Justification <span class="text-danger">*</span> (Min 5 characters)
+                    </label>
+                    <textarea class="form-control form-control-sm" id="unlockBatchReason" rows="3"
+                              placeholder="e.g. Delivery boy accidentally finalized shift before entering evening customer drops."
+                              maxlength="250"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer bg-light p-3">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-coreui-dismiss="modal" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning text-dark fw-semibold btn-sm px-4" id="btnConfirmUnlockBatch">
+                    <i class="cil-lock-unlocked me-1"></i> Confirm Unlock
+                </button>
             </div>
         </div>
     </div>
@@ -471,16 +640,181 @@
     document.addEventListener('DOMContentLoaded', function () {
         const tokenElement = document.querySelector('input[name="__RequestVerificationToken"]');
         const csrfToken = tokenElement ? tokenElement.value : '';
+        const ModalCtor = (window.coreui && window.coreui.Modal) || (window.bootstrap && window.bootstrap.Modal);
 
         // Modals
         const inspectionModalEl = document.getElementById('deliveryInspectionModal');
-        const inspectionModal = inspectionModalEl ? new bootstrap.Modal(inspectionModalEl) : null;
+        const inspectionModal = (inspectionModalEl && ModalCtor) ? new ModalCtor(inspectionModalEl) : null;
 
         const correctionModalEl = document.getElementById('deliveryCorrectionModal');
-        const correctionModal = correctionModalEl ? new bootstrap.Modal(correctionModalEl) : null;
+        const correctionModal = (correctionModalEl && ModalCtor) ? new ModalCtor(correctionModalEl) : null;
 
         const unscheduledModalEl = document.getElementById('unscheduledAuthModal');
-        const unscheduledModal = unscheduledModalEl ? new bootstrap.Modal(unscheduledModalEl) : null;
+        const unscheduledModal = (unscheduledModalEl && ModalCtor) ? new ModalCtor(unscheduledModalEl) : null;
+
+        const unlockBatchModalEl = document.getElementById('unlockBatchModal');
+        const unlockBatchModal = (unlockBatchModalEl && ModalCtor) ? new ModalCtor(unlockBatchModalEl) : null;
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // Open Unlock Batch Modal
+        document.addEventListener('click', function (e) {
+            const unlockBtn = e.target.closest('.btn-unlock-batch');
+            if (!unlockBtn) return;
+
+            document.getElementById('unlockBatchId').value = unlockBtn.getAttribute('data-batch-id') || '';
+            document.getElementById('unlockModalBatchDisplay').textContent = '#' + (unlockBtn.getAttribute('data-batch-id') || '');
+            document.getElementById('unlockModalBoyName').textContent = unlockBtn.getAttribute('data-boy-name') || '';
+            document.getElementById('unlockModalDateShift').textContent =
+                (unlockBtn.getAttribute('data-entry-date') || '') + ' (' + (unlockBtn.getAttribute('data-shift') || '') + ')';
+            document.getElementById('unlockBatchReason').value = '';
+
+            if (unlockBatchModal) unlockBatchModal.show();
+        });
+
+        // Confirm Unlock Batch Submission
+        const btnConfirmUnlockBatch = document.getElementById('btnConfirmUnlockBatch');
+        if (btnConfirmUnlockBatch) {
+            btnConfirmUnlockBatch.addEventListener('click', async function () {
+                const batchId = parseInt(document.getElementById('unlockBatchId').value || '0');
+                const unlockReason = (document.getElementById('unlockBatchReason').value || '').trim();
+
+                if (!batchId || batchId <= 0) {
+                    alert('Invalid batch identifier.');
+                    return;
+                }
+                if (!unlockReason || unlockReason.length < 5) {
+                    alert('Unlock justification is mandatory and must be at least 5 characters long.');
+                    document.getElementById('unlockBatchReason').focus();
+                    return;
+                }
+
+                btnConfirmUnlockBatch.disabled = true;
+                btnConfirmUnlockBatch.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Unlocking...';
+
+                try {
+                    const response = await fetch('/DailyMilk/UnlockBatch', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': csrfToken
+                        },
+                        body: JSON.stringify({ batchId: batchId, unlockReason: unlockReason })
+                    });
+
+                    const contentType = response.headers.get('content-type') || '';
+                    const res = contentType.includes('application/json')
+                        ? await response.json()
+                        : { success: false, message: 'Server returned HTTP ' + response.status };
+
+                    if (res.success) {
+                        if (unlockBatchModal) unlockBatchModal.hide();
+                        alert('Unlocked: ' + (res.message || 'Shift batch reopened back to Draft.'));
+                        window.location.reload();
+                    } else {
+                        alert('Unlock Failed: ' + (res.message || 'Server rejected unlock request.'));
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('An unexpected error occurred while unlocking the shift batch.');
+                } finally {
+                    btnConfirmUnlockBatch.disabled = false;
+                    btnConfirmUnlockBatch.innerHTML = '<i class="cil-lock-unlocked me-1"></i> Confirm Unlock';
+                }
+            });
+        }
+
+        // Toggle Show All Locked Batches Across Dates
+        const btnToggleAllLockedBatches = document.getElementById('btnToggleAllLockedBatches');
+        if (btnToggleAllLockedBatches) {
+            btnToggleAllLockedBatches.addEventListener('click', async function () {
+                const currentMode = btnToggleAllLockedBatches.getAttribute('data-mode') || 'date';
+                const showAllRecent = currentMode === 'date';
+                btnToggleAllLockedBatches.disabled = true;
+
+                try {
+                    const params = new URLSearchParams();
+                    if (showAllRecent) {
+                        params.set('showAllRecent', 'true');
+                    } else {
+                        const dateVal = document.getElementById('filterDate')?.value;
+                        const shiftVal = document.getElementById('filterShift')?.value;
+                        const boyVal = document.getElementById('filterDeliveryBoy')?.value;
+                        if (dateVal) params.set('entryDate', dateVal);
+                        if (shiftVal) params.set('shift', shiftVal);
+                        if (boyVal) params.set('deliveryBoyId', boyVal);
+                    }
+
+                    const response = await fetch('/DailyMilk/GetBatches?' + params.toString());
+                    const res = await response.json();
+                    const tbody = document.getElementById('shiftBatchesBody');
+                    if (res.success && tbody) {
+                        const rows = res.data || [];
+                        if (rows.length === 0) {
+                            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-3 text-muted small">No shift batches found for this view.</td></tr>';
+                        } else {
+                            tbody.innerHTML = rows.map(b => {
+                                const shiftBadge = b.shift === 'Evening'
+                                    ? 'bg-dark text-white'
+                                    : 'bg-primary-subtle text-primary border border-primary-subtle';
+                                const lockBadge = b.isLocked
+                                    ? '<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="cil-lock-locked me-1"></i> Locked (Submitted)</span>'
+                                    : '<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle"><i class="cil-lock-unlocked me-1"></i> Unlocked (Draft)</span>';
+                                const actionHtml = b.canUnlock
+                                    ? `<button type="button" class="btn btn-warning btn-sm text-dark fw-semibold btn-unlock-batch" data-batch-id="${Number(b.batchId)}" data-boy-name="${escapeHtml(b.deliveryBoyName)}" data-entry-date="${escapeHtml(b.entryDate)}" data-shift="${escapeHtml(b.shift)}"><i class="cil-lock-unlocked me-1"></i> Unlock</button>`
+                                    : (b.hasPublishedBillLock
+                                        ? '<span class="badge bg-light text-secondary border extra-small">Published Bill Lock</span>'
+                                        : (b.hasFinalizedCompensationLock
+                                            ? '<span class="badge bg-light text-secondary border extra-small">Payroll Lock</span>'
+                                            : '<span class="text-muted extra-small">Editable by Partner</span>'));
+
+                                return `
+                                    <tr>
+                                        <td class="ps-3 font-tabular text-muted small">#${Number(b.batchId)}</td>
+                                        <td>
+                                            <div class="font-tabular small fw-semibold text-dark">${escapeHtml(b.entryDate)}</div>
+                                            <span class="badge ${shiftBadge} extra-small">${escapeHtml(b.shift)}</span>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold text-dark small">${escapeHtml(b.deliveryBoyName)}</div>
+                                            <div class="extra-small text-muted font-tabular">${escapeHtml(b.deliveryBoyPhone)}</div>
+                                        </td>
+                                        <td class="small text-secondary">${escapeHtml(b.routeName)}</td>
+                                        <td class="text-center extra-small font-tabular">
+                                            <span class="text-success fw-semibold">${b.completedCount} C</span> &bull;
+                                            <span class="text-warning-emphasis fw-semibold">${b.pendingCount} P</span> &bull;
+                                            <span class="text-danger fw-semibold">${b.notDeliveredCount} ND</span>
+                                        </td>
+                                        <td class="text-end font-tabular small">
+                                            <div class="fw-semibold text-primary">${Number(b.totalLiquidVolumeLitres).toFixed(2)} L</div>
+                                            <div class="extra-small text-muted">₹${Number(b.totalAmount).toFixed(2)}</div>
+                                        </td>
+                                        <td class="text-center">${lockBadge}</td>
+                                        <td class="text-end pe-3">${actionHtml}</td>
+                                    </tr>`;
+                            }).join('');
+                        }
+
+                        btnToggleAllLockedBatches.setAttribute('data-mode', showAllRecent ? 'all' : 'date');
+                        btnToggleAllLockedBatches.innerHTML = showAllRecent
+                            ? '<i class="cil-calendar me-1"></i> Back to Selected Date'
+                            : '<i class="cil-history me-1"></i> Show All Locked Shifts';
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Failed to load shift batches.');
+                } finally {
+                    btnToggleAllLockedBatches.disabled = false;
+                }
+            });
+        }
 
         // Inspect Button Handler
         document.addEventListener('click', async function (e) {

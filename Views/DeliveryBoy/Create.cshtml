@@ -92,7 +92,13 @@
             <div class="card-body p-4">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label asp-for="PrimaryRouteId" class="form-label fw-semibold small text-muted">Primary Route Allocation <span class="text-danger">*</span></label>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label asp-for="PrimaryRouteId" class="form-label fw-semibold small text-muted mb-0">Primary Route Allocation <span class="text-danger">*</span></label>
+                            <button type="button" class="btn btn-link btn-sm p-0 text-success fw-semibold text-decoration-none"
+                                    onclick="openQuickAddRouteModal('PrimaryRouteId', 'name-first')">
+                                <i class="cil-plus"></i> Add New Route
+                            </button>
+                        </div>
                         <select asp-for="PrimaryRouteId" class="form-select" required>
                             <option value="">-- Select Master Route --</option>
                             @if (Model.AvailableRoutes != null)
@@ -202,6 +208,8 @@
         </div>
     </form>
 </div>
+
+<partial name="_QuickAddRouteModal" />
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

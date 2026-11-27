@@ -1,0 +1,318 @@
+@model Dairy_Management_System.Models.Route.RouteIndexViewModel
+@{
+    Layout = "_LayoutAdmin";
+    ViewData["Title"] = "Route Management";
+    ViewData["ActiveMenu"] = "DeliveryBoy";
+}
+
+<div class="container-fluid px-0 pb-5">
+    <!-- Feedback Alerts -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success border-success-subtle shadow-sm alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
+            <i class="cil-check-circle fs-5 text-success"></i>
+            <div>@TempData["SuccessMessage"]</div>
+            <button type="button" class="btn-close" data-coreui-dismiss="alert" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger border-danger-subtle shadow-sm alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
+            <i class="cil-warning fs-5 text-danger"></i>
+            <div>@TempData["ErrorMessage"]</div>
+            <button type="button" class="btn-close" data-coreui-dismiss="alert" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Header Ribbon -->
+    <div class="card border-0 bg-white shadow-sm mb-4">
+        <div class="card-body py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle p-2 text-white bg-success d-flex align-items-center justify-content-center shadow-sm" style="width: 44px; height: 44px;">
+                    <i class="cil-location-pin fs-4"></i>
+                </div>
+                <div>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-1 small text-muted">
+                            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index" class="text-decoration-none">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a asp-controller="DeliveryBoy" asp-action="Index" class="text-decoration-none">Delivery Boys</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Route Management</li>
+                        </ol>
+                    </nav>
+                    <h5 class="mb-0 fw-bold text-dark">Delivery Routes Master</h5>
+                    <div class="text-muted small mt-1">
+                        Create and manage geographical delivery sectors available across Delivery Boys, Customers, Billing, Reports, and Exports.
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <a asp-controller="DeliveryBoy" asp-action="Index" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1">
+                    <i class="cil-arrow-left"></i> Back to Delivery Boys
+                </a>
+                <button type="button" class="btn btn-success btn-sm text-white d-inline-flex align-items-center gap-1 shadow-sm"
+                        data-coreui-toggle="modal" data-coreui-target="#createRouteModal"
+                        data-bs-toggle="modal" data-bs-target="#createRouteModal">
+                    <i class="cil-plus"></i> Add New Route
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metric Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 bg-white shadow-sm p-3 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="small fw-semibold text-muted">Total Routes</span>
+                    <span class="badge bg-light text-dark border"><i class="cil-map"></i></span>
+                </div>
+                <div class="fs-4 fw-bold text-dark font-tabular">@Model.TotalRoutes</div>
+                <div class="small text-muted">Master geographical sectors</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 bg-white shadow-sm p-3 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="small fw-semibold text-muted">Active Routes</span>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="cil-check-circle"></i></span>
+                </div>
+                <div class="fs-4 fw-bold text-success font-tabular">@Model.ActiveRoutes</div>
+                <div class="small text-muted">Available for staff &amp; customers</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 bg-white shadow-sm p-3 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="small fw-semibold text-muted">Assigned Delivery Boys</span>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="cil-bike"></i></span>
+                </div>
+                <div class="fs-4 fw-bold text-primary font-tabular">@Model.TotalAssignedAgents</div>
+                <div class="small text-muted">Active route allocations</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 bg-white shadow-sm p-3 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="small fw-semibold text-muted">Active Route Customers</span>
+                    <span class="badge bg-info-subtle text-info border border-info-subtle"><i class="cil-people"></i></span>
+                </div>
+                <div class="fs-4 fw-bold text-info font-tabular">@Model.TotalAssignedCustomers</div>
+                <div class="small text-muted">Across all active sectors</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Routes Table -->
+    <div class="card border-0 bg-white shadow-sm">
+        <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold text-dark">Configured Delivery Routes</h6>
+            <span class="text-muted small">Showing @Model.TotalRoutes route(s)</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small text-uppercase text-muted">
+                    <tr>
+                        <th class="ps-4">Code</th>
+                        <th>Route Name</th>
+                        <th>Coverage Description</th>
+                        <th class="text-center">Active Agents</th>
+                        <th class="text-center">Active Customers</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Routes.Count > 0)
+                    {
+                        foreach (var route in Model.Routes)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <span class="badge bg-light text-dark border font-monospace">@route.RouteCode</span>
+                                </td>
+                                <td class="fw-semibold text-dark">@route.RouteName</td>
+                                <td class="text-muted small">@(string.IsNullOrWhiteSpace(route.Description) ? "—" : route.Description)</td>
+                                <td class="text-center">
+                                    <span class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle px-2 font-tabular">
+                                        @route.ActiveDeliveryBoyCount
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge rounded-pill bg-light text-dark border px-2 font-tabular">
+                                        @route.ActiveCustomerCount
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (route.IsActive)
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            <i class="cil-check me-1"></i> Active
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                            <i class="cil-ban me-1"></i> Inactive
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="d-inline-flex gap-1">
+                                        <button type="button"
+                                                class="btn btn-outline-secondary btn-sm btn-edit-route"
+                                                title="Edit Route"
+                                                data-route-id="@route.RouteId"
+                                                data-route-code="@route.RouteCode"
+                                                data-route-name="@route.RouteName"
+                                                data-route-description="@(route.Description ?? string.Empty)">
+                                            <i class="cil-pencil"></i> Edit
+                                        </button>
+                                        <form asp-controller="Route" asp-action="ToggleStatus" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="routeId" value="@route.RouteId" />
+                                            @if (route.IsActive)
+                                            {
+                                                <input type="hidden" name="activate" value="false" />
+                                                <button type="submit"
+                                                        class="btn btn-outline-danger btn-sm btn-deactivate-route"
+                                                        title="Deactivate Route"
+                                                        data-route-label="@($"{route.RouteCode} ({route.RouteName})")">
+                                                    <i class="cil-ban"></i> Deactivate
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <input type="hidden" name="activate" value="true" />
+                                                <button type="submit" class="btn btn-outline-success btn-sm" title="Activate Route">
+                                                    <i class="cil-check"></i> Activate
+                                                </button>
+                                            }
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="cil-location-pin fs-1 d-block mb-2 opacity-50"></i>
+                                <h6 class="fw-semibold">No Routes Configured</h6>
+                                <p class="small mb-0">Click "Add New Route" above to register your first delivery route.</p>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add New Route -->
+<div class="modal fade" id="createRouteModal" tabindex="-1" aria-labelledby="createRouteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-controller="Route" asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fs-6 fw-bold" id="createRouteModalLabel">
+                        <i class="cil-plus me-1"></i> Add New Delivery Route
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-coreui-dismiss="modal" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-muted">Route Code <span class="text-danger">*</span></label>
+                        <input type="text" name="RouteCode" class="form-control text-uppercase" placeholder="e.g. RT-03" maxlength="20" required />
+                        <div class="form-text small">Unique short code (automatically uppercased, e.g. RT-03, ZONE-A).</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-muted">Route Name <span class="text-danger">*</span></label>
+                        <input type="text" name="RouteName" class="form-control" placeholder="e.g. 150 Feet Ring Road Route" maxlength="100" required />
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold small text-muted">Coverage Description (Optional)</label>
+                        <textarea name="Description" class="form-control" rows="2" placeholder="Major societies, blocks, or landmarks covered..." maxlength="250"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-coreui-dismiss="modal" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success btn-sm text-white px-4">
+                        <i class="cil-check me-1"></i> Save Route
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Edit Route -->
+<div class="modal fade" id="editRouteModal" tabindex="-1" aria-labelledby="editRouteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form asp-controller="Route" asp-action="Edit" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="RouteId" id="editRouteId" />
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fs-6 fw-bold" id="editRouteModalLabel">
+                        <i class="cil-pencil me-1"></i> Edit Delivery Route
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-coreui-dismiss="modal" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-muted">Route Code <span class="text-danger">*</span></label>
+                        <input type="text" name="RouteCode" id="editRouteCode" class="form-control text-uppercase" maxlength="20" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-muted">Route Name <span class="text-danger">*</span></label>
+                        <input type="text" name="RouteName" id="editRouteName" class="form-control" maxlength="100" required />
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold small text-muted">Coverage Description (Optional)</label>
+                        <textarea name="Description" id="editRouteDescription" class="form-control" rows="2" maxlength="250"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-coreui-dismiss="modal" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success btn-sm text-white px-4">
+                        <i class="cil-save me-1"></i> Update Route
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const editModalEl = document.getElementById('editRouteModal');
+            const ModalCtor = (window.coreui && window.coreui.Modal) || (window.bootstrap && window.bootstrap.Modal);
+
+            document.querySelectorAll('.btn-edit-route').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    document.getElementById('editRouteId').value = this.getAttribute('data-route-id') || '';
+                    document.getElementById('editRouteCode').value = this.getAttribute('data-route-code') || '';
+                    document.getElementById('editRouteName').value = this.getAttribute('data-route-name') || '';
+                    document.getElementById('editRouteDescription').value = this.getAttribute('data-route-description') || '';
+
+                    if (editModalEl && ModalCtor) {
+                        ModalCtor.getOrCreateInstance(editModalEl).show();
+                    }
+                });
+            });
+
+            document.querySelectorAll('.btn-deactivate-route').forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    const label = this.getAttribute('data-route-label') || 'this route';
+                    if (!window.confirm('Deactivate route ' + label + '? Routes with active delivery boys or customers must be reassigned first.')) {
+                        e.preventDefault();
+                    }
+                });
+            });
+        });
+    </script>
+}

@@ -136,8 +136,12 @@
                                     @if (n.IsAcknowledged)
                                     {
                                         <span class="badge bg-success-subtle text-success border border-success-subtle">
-                                            <i class="cil-check me-1"></i> Acknowledged
+                                            <i class="cil-check me-1"></i> Acknowledged (@n.AcknowledgementCount)
                                         </span>
+                                        @if (!string.IsNullOrWhiteSpace(n.AcknowledgedByNames))
+                                        {
+                                            <div class="text-dark small fw-medium fs-7 mt-1">Read by: @n.AcknowledgedByNames</div>
+                                        }
                                         @if (n.AcknowledgedAt.HasValue)
                                         {
                                             <div class="text-muted small font-tabular fs-7">@n.AcknowledgedAt.Value.ToString("MMM dd HH:mm")</div>
