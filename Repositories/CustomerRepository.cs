@@ -393,7 +393,12 @@ namespace Dairy_Management_System.Repositories
             return DeactivateCustomerAsync(customerId, today, false, modifiedByUserId, cancellationToken);
         }
 
-        public async Task DeactivateCustomerAsync(int customerId, DateOnly deactivationDate, bool deliveryAlreadyRecordedOnDate, int modifiedByUserId, CancellationToken cancellationToken = default)
+        public Task DeactivateCustomerAsync(int customerId, DateOnly deactivationDate, bool deliveryAlreadyRecordedOnDate, int modifiedByUserId, CancellationToken cancellationToken = default)
+        {
+            return DeactivateCustomerAsync(customerId, deactivationDate, deliveryAlreadyRecordedOnDate, null, modifiedByUserId, cancellationToken);
+        }
+
+        public async Task DeactivateCustomerAsync(int customerId, DateOnly deactivationDate, bool deliveryAlreadyRecordedOnDate, string? reason, int modifiedByUserId, CancellationToken cancellationToken = default)
         {
             await using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken).ConfigureAwait(false);
 
@@ -401,14 +406,18 @@ namespace Dairy_Management_System.Repositories
                 ? "[dbo].[usp_Customer_Deactivate_WithRecordedDelivery]"
                 : "[dbo].[usp_Customer_Deactivate]";
 
+            string effectiveReason = !string.IsNullOrWhiteSpace(reason)
+                ? reason.Trim()
+                : (deliveryAlreadyRecordedOnDate
+                    ? "Customer requested deactivation (recorded delivery billed)"
+                    : "Customer requested deactivation");
+
             await using var command = new SqlCommand(spName, connection);
             command.CommandType = CommandType.StoredProcedure;
 
             command.Parameters.Add("@CustomerId", SqlDbType.Int).Value = customerId;
             command.Parameters.Add("@DeactivationDate", SqlDbType.Date).Value = deactivationDate.ToDateTime(TimeOnly.MinValue);
-            command.Parameters.Add("@Reason", SqlDbType.NVarChar, 250).Value = deliveryAlreadyRecordedOnDate
-                ? "Customer requested deactivation (recorded delivery billed)"
-                : "Customer requested deactivation";
+            command.Parameters.Add("@Reason", SqlDbType.NVarChar, 250).Value = effectiveReason;
             command.Parameters.Add("@AdminUserId", SqlDbType.Int).Value = modifiedByUserId;
 
             await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
@@ -421,6 +430,25 @@ namespace Dairy_Management_System.Repositories
                 FROM [dbo].[DailyMilkDeliveries]
                 WHERE [CustomerId] = @CustomerId
                   AND [EntryDate] = @TargetDate
+                  AND [Status] IN ('Completed', 'Delivered');";
+
+            await using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+
+            await using var command = new SqlCommand(sql, connection);
+            command.Parameters.Add("@CustomerId", SqlDbType.Int).Value = customerId;
+            command.Parameters.Add("@TargetDate", SqlDbType.Date).Value = date.ToDateTime(TimeOnly.MinValue);
+
+            var count = (int)(await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) ?? 0);
+            return count > 0;
+        }
+
+        public async Task<bool> HasDeliveryOnOrAfterDateAsync(int customerId, DateOnly date, CancellationToken cancellationToken = default)
+        {
+            const string sql = @"
+                SELECT COUNT(1)
+                FROM [dbo].[DailyMilkDeliveries]
+                WHERE [CustomerId] = @CustomerId
+                  AND [EntryDate] >= @TargetDate
                   AND [Status] IN ('Completed', 'Delivered');";
 
             await using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken).ConfigureAwait(false);

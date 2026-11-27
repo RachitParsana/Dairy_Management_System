@@ -66,7 +66,7 @@ namespace Dairy_Management_System.Models.Export
 
     public class CompensationExportItemDto
     {
-        public int CompensationId { get; set; }
+        public long CompensationId { get; set; }
         public string DeliveryBoyName { get; set; } = string.Empty;
         public string Phone { get; set; } = string.Empty;
         public string RouteName { get; set; } = string.Empty;

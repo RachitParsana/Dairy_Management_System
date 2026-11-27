@@ -211,7 +211,7 @@ namespace Dairy_Management_System.Repositories
                 {
                     list.Add(new CompensationExportItemDto
                     {
-                        CompensationId = reader.GetInt32(reader.GetOrdinal("CompensationId")),
+                        CompensationId = reader.GetInt64(reader.GetOrdinal("CompensationId")),
                         DeliveryBoyName = reader.GetString(reader.GetOrdinal("DeliveryBoyName")),
                         Phone = reader.GetString(reader.GetOrdinal("Phone")),
                         RouteName = reader.IsDBNull(reader.GetOrdinal("RouteName")) ? "Unassigned" : reader.GetString(reader.GetOrdinal("RouteName")),

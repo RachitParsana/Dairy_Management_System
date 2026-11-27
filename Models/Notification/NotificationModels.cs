@@ -53,6 +53,7 @@ namespace Dairy_Management_System.Models.Notification
         public bool IsAcknowledged { get; set; }
         public DateTime? AcknowledgedAt { get; set; }
         public int AcknowledgementCount { get; set; }
+        public string? AcknowledgedByNames { get; set; }
     }
 
     public class CreateNotificationViewModel

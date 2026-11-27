@@ -17,7 +17,7 @@ namespace Dairy_Management_System.Services
     /// Orchestrates daily runsheets, draft saves, shift submissions, unscheduled delivery authorizations,
     /// administrative corrections with audit logging, and effective-dated commission tracking.
     /// </summary>
-    public class DailyMilkService : IDailyMilkService
+    public class DailyMilkService : IDailyMilkService, IDailyMilkBatchAdminService
     {
         private readonly IDailyMilkRepository _dailyMilkRepository;
         private readonly ISqlConnectionFactory _connectionFactory;
@@ -275,7 +275,12 @@ namespace Dairy_Management_System.Services
             catch (SqlException ex)
             {
                 _logger.LogError(ex, "Failed to save daily milk draft runsheet for DeliveryBoy {DeliveryBoyId}", deliveryBoyId);
-                return DailyMilkOperationResult.Failure(ex.Message);
+                return DailyMilkOperationResult.Failure(MapSaveBatchSqlError(ex, model.EntryDate));
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogError(ex, "Unexpected error saving daily milk draft runsheet for DeliveryBoy {DeliveryBoyId}", deliveryBoyId);
+                return DailyMilkOperationResult.Failure("Unable to save draft runsheet. Please refresh and try again.");
             }
         }
 
@@ -322,32 +327,24 @@ namespace Dairy_Management_System.Services
             catch (SqlException ex)
             {
                 _logger.LogError(ex, "Failed to submit daily deliveries for DeliveryBoy {DeliveryBoyId}", deliveryBoyId);
-
-                if (ex.Number == 50020)
-                {
-                    return DailyMilkOperationResult.Failure("Shift batch has already been finalized and submitted. No further modifications permitted.");
-                }
-                if (ex.Number == 50021)
-                {
-                    return DailyMilkOperationResult.Failure("One or more customers are not assigned to this delivery boy on this date.");
-                }
-                if (ex.Number == 50022)
-                {
-                    return DailyMilkOperationResult.Failure("Cannot submit delivery: One or more customers are on approved vacation for this shift and date.");
-                }
-                if (ex.Number == 50025)
-                {
-                    return DailyMilkOperationResult.Failure("Unscheduled delivery on off-schedule date is not authorized by an Administrator for this shift.");
-                }
-                if (ex.Number == 50035)
-                {
-                    return DailyMilkOperationResult.Failure(
-                        $"Cannot finalize shift: No verified commission rate configured for this delivery boy covering EntryDate {model.EntryDate:yyyy-MM-dd}. An administrator must explicitly configure an effective-dated commission rate tier covering this date before finalizing this shift.");
-                }
-
-                return DailyMilkOperationResult.Failure(ex.Message);
+                return DailyMilkOperationResult.Failure(MapSaveBatchSqlError(ex, model.EntryDate));
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogError(ex, "Unexpected error submitting daily deliveries for DeliveryBoy {DeliveryBoyId}", deliveryBoyId);
+                return DailyMilkOperationResult.Failure("Unable to finalize shift submission. Please refresh and try again.");
             }
         }
+
+        private static string MapSaveBatchSqlError(SqlException ex, DateOnly entryDate) => ex.Number switch
+        {
+            50020 => "Shift batch has already been finalized and submitted. No further modifications permitted.",
+            50021 => "One or more customers are not assigned to this delivery boy on this date.",
+            50022 => "Cannot submit delivery: One or more customers are on approved vacation for this shift and date.",
+            50025 => "Unscheduled delivery on off-schedule date is not authorized by an Administrator for this shift.",
+            50035 => $"Cannot finalize shift: No verified commission rate configured for this delivery boy covering EntryDate {entryDate:yyyy-MM-dd}. An administrator must explicitly configure an effective-dated commission rate tier covering this date before finalizing this shift.",
+            _ => ex.Message
+        };
 
         private static List<DailyMilkEntry> MapEntriesFromSubmission(
             DailyMilkSubmissionViewModel model,
@@ -671,6 +668,73 @@ namespace Dairy_Management_System.Services
             }
 
             return list;
+        }
+
+        #endregion
+
+        #region Admin Batch Lock & Unlock Management
+
+        public async Task<IReadOnlyList<DailyMilkBatchAdminItemDto>> GetBatchesForAdminAsync(
+            DateOnly? entryDate,
+            string? shift,
+            int? deliveryBoyId,
+            string? status = null,
+            int limit = 50,
+            CancellationToken cancellationToken = default)
+        {
+            if (_dailyMilkRepository is not IDailyMilkBatchAdminRepository batchRepo)
+            {
+                return Array.Empty<DailyMilkBatchAdminItemDto>();
+            }
+
+            return await batchRepo.GetBatchesForAdminAsync(entryDate, shift, deliveryBoyId, status, limit, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        public async Task<DailyMilkOperationResult> UnlockBatchAsync(
+            long batchId,
+            string unlockReason,
+            int adminUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (batchId <= 0)
+            {
+                return DailyMilkOperationResult.Failure("Invalid delivery batch identifier.");
+            }
+
+            if (string.IsNullOrWhiteSpace(unlockReason) || unlockReason.Trim().Length < 5)
+            {
+                return DailyMilkOperationResult.Failure("Unlock justification must be at least 5 characters long.");
+            }
+
+            if (_dailyMilkRepository is not IDailyMilkBatchAdminRepository batchRepo)
+            {
+                return DailyMilkOperationResult.Failure("Batch unlock repository is unavailable.");
+            }
+
+            try
+            {
+                await batchRepo.UnlockBatchAsync(batchId, unlockReason.Trim(), adminUserId, cancellationToken)
+                    .ConfigureAwait(false);
+
+                _logger.LogInformation("Admin {AdminUserId} unlocked DailyDeliveryBatch {BatchId}.", adminUserId, batchId);
+                return DailyMilkOperationResult.SuccessBatch(batchId, 1, "Shift runsheet unlocked cleanly back to Draft. The Delivery Boy can now modify and re-submit entries.");
+            }
+            catch (SqlException ex) when (ex.Number is >= 50041 and <= 50046)
+            {
+                _logger.LogWarning(ex, "Blocked attempt by Admin {AdminUserId} to unlock BatchId {BatchId}: {Message}", adminUserId, batchId, ex.Message);
+                return DailyMilkOperationResult.Failure(ex.Message);
+            }
+            catch (SqlException ex)
+            {
+                _logger.LogError(ex, "SQL failure unlocking BatchId {BatchId} by Admin {AdminUserId}.", batchId, adminUserId);
+                return DailyMilkOperationResult.Failure(ex.Message);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogError(ex, "Unexpected failure unlocking BatchId {BatchId} by Admin {AdminUserId}.", batchId, adminUserId);
+                return DailyMilkOperationResult.Failure("An unexpected error occurred while unlocking the shift batch.");
+            }
         }
 
         #endregion

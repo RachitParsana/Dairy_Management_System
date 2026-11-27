@@ -11,6 +11,7 @@ using Dairy_Management_System.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Dairy_Management_System.Controllers
@@ -23,6 +24,7 @@ namespace Dairy_Management_System.Controllers
     public class DailyMilkController : Controller
     {
         private readonly IDailyMilkService _dailyMilkService;
+        private readonly IDailyMilkBatchAdminService? _batchAdminService;
         private readonly ISqlConnectionFactory _connectionFactory;
         private readonly ILogger<DailyMilkController> _logger;
 
@@ -30,13 +32,33 @@ namespace Dairy_Management_System.Controllers
             IDailyMilkService dailyMilkService,
             ISqlConnectionFactory connectionFactory,
             ILogger<DailyMilkController> logger)
+            : this(dailyMilkService, dailyMilkService as IDailyMilkBatchAdminService, connectionFactory, logger)
+        {
+        }
+
+        [ActivatorUtilitiesConstructor]
+        public DailyMilkController(
+            IDailyMilkService dailyMilkService,
+            IDailyMilkBatchAdminService? batchAdminService,
+            ISqlConnectionFactory connectionFactory,
+            ILogger<DailyMilkController> logger)
         {
             _dailyMilkService = dailyMilkService ?? throw new ArgumentNullException(nameof(dailyMilkService));
+            _batchAdminService = batchAdminService ?? (dailyMilkService as IDailyMilkBatchAdminService);
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         #region Helper: Claims Identity
+
+        private static string? ResolveOperationMessage(DailyMilkOperationResult result)
+        {
+            if (!string.IsNullOrWhiteSpace(result.Message))
+            {
+                return result.Message;
+            }
+            return result.Errors.Count > 0 ? string.Join(" ", result.Errors) : null;
+        }
 
         private int GetCurrentUserId()
         {
@@ -129,13 +151,18 @@ namespace Dairy_Management_System.Controllers
             }
 
             int userId = GetCurrentUserId();
+            if (userId <= 0)
+            {
+                return Unauthorized(new { success = false, message = "User session expired. Please sign in again." });
+            }
+
             model.IsFinalSubmission = false;
 
             var result = await _dailyMilkService.SaveDraftAsync(model, userId, cancellationToken);
             return Json(new
             {
                 success = result.Succeeded,
-                message = result.Message,
+                message = ResolveOperationMessage(result),
                 batchId = result.BatchId
             });
         }
@@ -155,13 +182,18 @@ namespace Dairy_Management_System.Controllers
             }
 
             int userId = GetCurrentUserId();
+            if (userId <= 0)
+            {
+                return Unauthorized(new { success = false, message = "User session expired. Please sign in again." });
+            }
+
             model.IsFinalSubmission = true;
 
             var result = await _dailyMilkService.SubmitDailyDeliveriesAsync(model, userId, cancellationToken);
             return Json(new
             {
                 success = result.Succeeded,
-                message = result.Message,
+                message = ResolveOperationMessage(result),
                 batchId = result.BatchId
             });
         }
@@ -196,11 +228,78 @@ namespace Dairy_Management_System.Controllers
                 criteria.DeliveryBoyId,
                 cancellationToken);
 
+            // Fetch shift batches for lock/unlock control on selected filters (or recent locked shifts fallback)
+            ViewBag.ShiftBatches = _batchAdminService != null
+                ? await _batchAdminService.GetBatchesForAdminAsync(
+                    criteria.EntryDate,
+                    criteria.Shift,
+                    criteria.DeliveryBoyId,
+                    null,
+                    50,
+                    cancellationToken)
+                : Array.Empty<DailyMilkBatchAdminItemDto>();
+
             // Initial chunk of records
             var initialFeed = await _dailyMilkService.GetDeliveriesContinuousAsync(criteria, cancellationToken);
             ViewBag.FilterCriteria = criteria;
 
             return View(initialFeed);
+        }
+
+        /// <summary>
+        /// Retrieves shift batch lock statuses for Administrator unlock control.
+        /// </summary>
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetBatches(DateOnly? entryDate, string? shift, int? deliveryBoyId, bool showAllRecent = false, CancellationToken cancellationToken = default)
+        {
+            if (_batchAdminService == null)
+            {
+                return Json(new { success = false, message = "Batch management service is unavailable.", data = Array.Empty<DailyMilkBatchAdminItemDto>() });
+            }
+
+            DateOnly? targetDate = showAllRecent ? null : (entryDate ?? DateOnly.FromDateTime(DateTime.Today));
+            string? targetStatus = showAllRecent ? "Submitted" : null;
+            var batches = await _batchAdminService.GetBatchesForAdminAsync(targetDate, shift, deliveryBoyId, targetStatus, 50, cancellationToken);
+            return Json(new { success = true, data = batches });
+        }
+
+        /// <summary>
+        /// Unlocks a finalized/submitted delivery boy shift batch back to Draft status with mandatory audit reason.
+        /// </summary>
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UnlockBatch([FromBody] UnlockDailyMilkBatchRequest model, CancellationToken cancellationToken = default)
+        {
+            if (model == null || model.BatchId <= 0)
+            {
+                return Json(new { success = false, message = "Invalid batch identifier." });
+            }
+
+            if (string.IsNullOrWhiteSpace(model.UnlockReason) || model.UnlockReason.Trim().Length < 5)
+            {
+                return Json(new { success = false, message = "Unlock justification must be at least 5 characters long." });
+            }
+
+            if (_batchAdminService == null)
+            {
+                return Json(new { success = false, message = "Batch unlock service is unavailable." });
+            }
+
+            int adminUserId = GetCurrentUserId();
+            if (adminUserId <= 0)
+            {
+                return Unauthorized(new { success = false, message = "Administrator session expired. Please sign in again." });
+            }
+
+            var result = await _batchAdminService.UnlockBatchAsync(model.BatchId, model.UnlockReason, adminUserId, cancellationToken);
+            return Json(new
+            {
+                success = result.Succeeded,
+                message = ResolveOperationMessage(result),
+                batchId = result.BatchId
+            });
         }
 
         /// <summary>
@@ -256,7 +355,7 @@ namespace Dairy_Management_System.Controllers
             return Json(new
             {
                 success = result.Succeeded,
-                message = result.Message,
+                message = ResolveOperationMessage(result),
                 deliveryId = result.DeliveryId
             });
         }
@@ -285,7 +384,7 @@ namespace Dairy_Management_System.Controllers
             return Json(new
             {
                 success = result.Succeeded,
-                message = result.Message
+                message = ResolveOperationMessage(result)
             });
         }
 
@@ -313,7 +412,7 @@ namespace Dairy_Management_System.Controllers
             return Json(new
             {
                 success = result.Succeeded,
-                message = result.Message
+                message = ResolveOperationMessage(result)
             });
         }
 

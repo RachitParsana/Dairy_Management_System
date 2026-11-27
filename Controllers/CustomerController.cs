@@ -333,14 +333,16 @@ namespace Dairy_Management_System.Controllers
         /// Used by confirmation dialogs in reassignment and deactivation modals.
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> CheckDeliveryOnDate(int customerId, string date, CancellationToken cancellationToken)
+        public async Task<IActionResult> CheckDeliveryOnDate(int customerId, string date, bool includeFuture = false, CancellationToken cancellationToken = default)
         {
             if (!DateOnly.TryParse(date, out var targetDate))
             {
                 return Json(new { success = false, message = "Invalid date format." });
             }
 
-            bool hasDelivery = await _customerRepository.HasDeliveryOnDateAsync(customerId, targetDate, cancellationToken);
+            bool hasDelivery = includeFuture
+                ? await _customerRepository.HasDeliveryOnOrAfterDateAsync(customerId, targetDate, cancellationToken)
+                : await _customerRepository.HasDeliveryOnDateAsync(customerId, targetDate, cancellationToken);
             return Json(new { success = true, hasDelivery, date = targetDate.ToString("yyyy-MM-dd") });
         }
 

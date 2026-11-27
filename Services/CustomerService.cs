@@ -313,14 +313,13 @@ namespace Dairy_Management_System.Services
                 return CustomerOperationResult.Success(customer.CustomerId, customer.CustomerCode, "Customer is already inactive.");
             }
 
-            // Check if delivery was already recorded on the deactivation date
-            bool deliveryExistsOnDate = await _customerRepository.HasDeliveryOnDateAsync(model.CustomerId, model.DeactivationDate, cancellationToken).ConfigureAwait(false);
+            // Check if any completed/delivered entries exist on or after the deactivation date (aligns with usp_Customer_Deactivate)
+            bool deliveryExistsOnOrAfterDate = await _customerRepository.HasDeliveryOnOrAfterDateAsync(model.CustomerId, model.DeactivationDate, cancellationToken).ConfigureAwait(false);
 
-            if (deliveryExistsOnDate && !model.ConfirmDeliveryOnDeactivationDate)
+            if (deliveryExistsOnOrAfterDate && !model.ConfirmDeliveryOnDeactivationDate)
             {
-                string prompt = $"A delivery has already been recorded for this customer on {model.DeactivationDate:yyyy-MM-dd}. " +
-                                "Deactivating on this date will bill today's recorded delivery and terminate service starting tomorrow. " +
-                                "Please confirm to proceed.";
+                string prompt = $"Recorded milk deliveries already exist for this customer on or after {model.DeactivationDate:yyyy-MM-dd}. " +
+                                "Please check the confirmation checkbox inside the Deactivate dialog to preserve recorded/billed deliveries and terminate service.";
                 return CustomerOperationResult.NeedsConfirmation(model.CustomerId, prompt);
             }
 
@@ -329,7 +328,8 @@ namespace Dairy_Management_System.Services
                 await _customerRepository.DeactivateCustomerAsync(
                     model.CustomerId,
                     model.DeactivationDate,
-                    deliveryExistsOnDate && model.ConfirmDeliveryOnDeactivationDate,
+                    deliveryExistsOnOrAfterDate && model.ConfirmDeliveryOnDeactivationDate,
+                    model.Reason,
                     modifiedByUserId,
                     cancellationToken).ConfigureAwait(false);
 

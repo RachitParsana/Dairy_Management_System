@@ -245,6 +245,30 @@ namespace Dairy_Management_System.Repositories
             }
         }
 
+        public async Task<bool> MarkAllReadAsync(int userId, string role, int? deliveryBoyId, int? routeId, CancellationToken ct = default)
+        {
+            await using var connection = await _connectionFactory.CreateOpenConnectionAsync(ct).ConfigureAwait(false);
+            await using var command = new SqlCommand("dbo.usp_Notifications_MarkAllReadForUser", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            command.Parameters.Add(new SqlParameter("@UserId", SqlDbType.Int) { Value = userId });
+            command.Parameters.Add(new SqlParameter("@Role", SqlDbType.NVarChar, 20) { Value = role });
+            command.Parameters.Add(new SqlParameter("@DeliveryBoyId", SqlDbType.Int) { Value = (object?)deliveryBoyId ?? DBNull.Value });
+            command.Parameters.Add(new SqlParameter("@RouteId", SqlDbType.Int) { Value = (object?)routeId ?? DBNull.Value });
+
+            try
+            {
+                await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to mark all notifications as read for UserId {UserId}.", userId);
+                throw;
+            }
+        }
+
         public async Task<IReadOnlyList<NotificationListItemDto>> GetAdminOverviewAsync(int limit = 50, CancellationToken ct = default)
         {
             var list = new List<NotificationListItemDto>();
@@ -259,23 +283,43 @@ namespace Dairy_Management_System.Repositories
             try
             {
                 await using var reader = await command.ExecuteReaderAsync(ct).ConfigureAwait(false);
+                int ordId = reader.GetOrdinal("NotificationId");
+                int ordTitle = reader.GetOrdinal("Title");
+                int ordMsg = reader.GetOrdinal("Message");
+                int ordType = reader.GetOrdinal("NotificationType");
+                int ordRole = reader.GetOrdinal("TargetRole");
+                int ordRouteName = reader.GetOrdinal("TargetRouteName");
+                int ordDbName = reader.GetOrdinal("TargetDeliveryBoyName");
+                int ordCustSnap = reader.GetOrdinal("CustomerNameSnapshot");
+                int ordAmount = reader.GetOrdinal("UpdatedBillAmount");
+                int ordMonthYear = reader.GetOrdinal("BillingMonthYear");
+                int ordCreated = reader.GetOrdinal("CreatedAt");
+                int ordCreatedBy = reader.GetOrdinal("CreatedByName");
+                int ordAckCount = reader.GetOrdinal("AcknowledgementCount");
+                int ordAckAt = reader.GetOrdinal("AcknowledgedAt");
+                int ordAckNames = reader.GetOrdinal("AcknowledgedByNames");
+
                 while (await reader.ReadAsync(ct).ConfigureAwait(false))
                 {
+                    int ackCount = reader.GetInt32(ordAckCount);
                     list.Add(new NotificationListItemDto
                     {
-                        NotificationId = reader.GetInt64(reader.GetOrdinal("NotificationId")),
-                        Title = reader.GetString(reader.GetOrdinal("Title")),
-                        Message = reader.GetString(reader.GetOrdinal("Message")),
-                        NotificationType = reader.GetString(reader.GetOrdinal("NotificationType")),
-                        TargetRole = reader.GetString(reader.GetOrdinal("TargetRole")),
-                        TargetRouteName = reader.IsDBNull(reader.GetOrdinal("TargetRouteName")) ? null : reader.GetString(reader.GetOrdinal("TargetRouteName")),
-                        TargetDeliveryBoyName = reader.IsDBNull(reader.GetOrdinal("TargetDeliveryBoyName")) ? null : reader.GetString(reader.GetOrdinal("TargetDeliveryBoyName")),
-                        CustomerNameSnapshot = reader.IsDBNull(reader.GetOrdinal("CustomerNameSnapshot")) ? null : reader.GetString(reader.GetOrdinal("CustomerNameSnapshot")),
-                        UpdatedBillAmount = reader.IsDBNull(reader.GetOrdinal("UpdatedBillAmount")) ? null : reader.GetDecimal(reader.GetOrdinal("UpdatedBillAmount")),
-                        BillingMonthYear = reader.IsDBNull(reader.GetOrdinal("BillingMonthYear")) ? null : reader.GetString(reader.GetOrdinal("BillingMonthYear")),
-                        CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
-                        CreatedByName = reader.IsDBNull(reader.GetOrdinal("CreatedByName")) ? string.Empty : reader.GetString(reader.GetOrdinal("CreatedByName")),
-                        AcknowledgementCount = reader.GetInt32(reader.GetOrdinal("AcknowledgementCount"))
+                        NotificationId = reader.GetInt64(ordId),
+                        Title = reader.GetString(ordTitle),
+                        Message = reader.GetString(ordMsg),
+                        NotificationType = reader.GetString(ordType),
+                        TargetRole = reader.GetString(ordRole),
+                        TargetRouteName = reader.IsDBNull(ordRouteName) ? null : reader.GetString(ordRouteName),
+                        TargetDeliveryBoyName = reader.IsDBNull(ordDbName) ? null : reader.GetString(ordDbName),
+                        CustomerNameSnapshot = reader.IsDBNull(ordCustSnap) ? null : reader.GetString(ordCustSnap),
+                        UpdatedBillAmount = reader.IsDBNull(ordAmount) ? null : reader.GetDecimal(ordAmount),
+                        BillingMonthYear = reader.IsDBNull(ordMonthYear) ? null : reader.GetString(ordMonthYear),
+                        CreatedAt = reader.GetDateTime(ordCreated),
+                        CreatedByName = reader.IsDBNull(ordCreatedBy) ? string.Empty : reader.GetString(ordCreatedBy),
+                        AcknowledgementCount = ackCount,
+                        IsAcknowledged = ackCount > 0,
+                        AcknowledgedAt = reader.IsDBNull(ordAckAt) ? null : reader.GetDateTime(ordAckAt),
+                        AcknowledgedByNames = reader.IsDBNull(ordAckNames) ? null : reader.GetString(ordAckNames)
                     });
                 }
                 return list;

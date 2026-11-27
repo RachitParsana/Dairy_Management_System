@@ -60,9 +60,19 @@ namespace Dairy_Management_System.Repositories
         Task DeactivateCustomerAsync(int customerId, DateOnly deactivationDate, bool deliveryAlreadyRecordedOnDate, int modifiedByUserId, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Soft-deactivates a customer with explicit effective date boundary semantics, recorded delivery handling, and audit reason.
+        /// </summary>
+        Task DeactivateCustomerAsync(int customerId, DateOnly deactivationDate, bool deliveryAlreadyRecordedOnDate, string? reason, int modifiedByUserId, CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Checks whether any delivered/recorded milk delivery exists for a customer on a specific date.
         /// </summary>
         Task<bool> HasDeliveryOnDateAsync(int customerId, DateOnly date, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Checks whether any delivered/recorded milk delivery exists for a customer on or after a specific date.
+        /// </summary>
+        Task<bool> HasDeliveryOnOrAfterDateAsync(int customerId, DateOnly date, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Reactivates a previously inactive customer (IsActive = 1, Status = 'Active').

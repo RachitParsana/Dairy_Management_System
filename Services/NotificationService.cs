@@ -70,6 +70,12 @@ namespace Dairy_Management_System.Services
             return await _notificationRepository.MarkPopupSeenAsync(notificationId, userId, ct);
         }
 
+        public async Task<bool> MarkAllReadAsync(int userId, string role, int? deliveryBoyId, int? routeId, CancellationToken ct = default)
+        {
+            if (userId <= 0) return false;
+            return await _notificationRepository.MarkAllReadAsync(userId, role, deliveryBoyId, routeId, ct);
+        }
+
         public async Task<int> GetUnreadCountAsync(int userId, string role, int? deliveryBoyId, int? routeId, CancellationToken ct = default)
         {
             var notifications = await _notificationRepository.GetForUserAsync(userId, role, deliveryBoyId, routeId, ct);

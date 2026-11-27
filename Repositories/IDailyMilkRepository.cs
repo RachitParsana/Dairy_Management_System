@@ -263,4 +263,25 @@ namespace Dairy_Management_System.Repositories
 
         #endregion
     }
+
+    /// <summary>
+    /// Sibling repository contract for Administrator batch lock/unlock management.
+    /// Kept separate from IDailyMilkRepository so existing test doubles remain compatible.
+    /// </summary>
+    public interface IDailyMilkBatchAdminRepository
+    {
+        Task<IReadOnlyList<DailyMilkBatchAdminItemDto>> GetBatchesForAdminAsync(
+            DateOnly? entryDate,
+            string? shift,
+            int? deliveryBoyId,
+            string? status = null,
+            int limit = 50,
+            CancellationToken cancellationToken = default);
+
+        Task UnlockBatchAsync(
+            long batchId,
+            string unlockReason,
+            int adminUserId,
+            CancellationToken cancellationToken = default);
+    }
 }

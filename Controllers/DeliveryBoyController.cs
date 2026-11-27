@@ -12,6 +12,7 @@ using Dairy_Management_System.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Dairy_Management_System.Controllers
@@ -28,6 +29,7 @@ namespace Dairy_Management_System.Controllers
         private readonly ICompensationService _compensationService;
         private readonly IRouteService _routeService;
         private readonly IDailyMilkService _dailyMilkService;
+        private readonly IUserAccountService? _userAccountService;
         private readonly ILogger<DeliveryBoyController> _logger;
 
         public DeliveryBoyController(
@@ -36,11 +38,24 @@ namespace Dairy_Management_System.Controllers
             IRouteService routeService,
             IDailyMilkService dailyMilkService,
             ILogger<DeliveryBoyController> logger)
+            : this(deliveryBoyService, compensationService, routeService, dailyMilkService, null, logger)
+        {
+        }
+
+        [ActivatorUtilitiesConstructor]
+        public DeliveryBoyController(
+            IDeliveryBoyService deliveryBoyService,
+            ICompensationService compensationService,
+            IRouteService routeService,
+            IDailyMilkService dailyMilkService,
+            IUserAccountService? userAccountService,
+            ILogger<DeliveryBoyController> logger)
         {
             _deliveryBoyService = deliveryBoyService ?? throw new ArgumentNullException(nameof(deliveryBoyService));
             _compensationService = compensationService ?? throw new ArgumentNullException(nameof(compensationService));
             _routeService = routeService ?? throw new ArgumentNullException(nameof(routeService));
             _dailyMilkService = dailyMilkService ?? throw new ArgumentNullException(nameof(dailyMilkService));
+            _userAccountService = userAccountService;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -621,7 +636,51 @@ namespace Dairy_Management_System.Controllers
 
         #endregion
 
-        #region 7. Compensation Shortcut
+        #region 7. Password Reset & Compensation Shortcut
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(int deliveryBoyId, string newPassword, string confirmPassword, CancellationToken ct = default)
+        {
+            if (_userAccountService == null)
+            {
+                TempData["ErrorMessage"] = "Password reset service is currently unavailable.";
+                return RedirectToAction(nameof(Details), new { id = deliveryBoyId });
+            }
+
+            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 8)
+            {
+                TempData["ErrorMessage"] = "New password must be at least 8 characters long.";
+                return RedirectToAction(nameof(Details), new { id = deliveryBoyId });
+            }
+
+            if (!string.Equals(newPassword, confirmPassword, StringComparison.Ordinal))
+            {
+                TempData["ErrorMessage"] = "New password and confirmation do not match.";
+                return RedirectToAction(nameof(Details), new { id = deliveryBoyId });
+            }
+
+            try
+            {
+                int adminUserId = GetCurrentUserId();
+                var result = await _userAccountService.ResetDeliveryBoyPasswordAsync(deliveryBoyId, newPassword, adminUserId, ct).ConfigureAwait(false);
+                if (result.Succeeded)
+                {
+                    TempData["SuccessMessage"] = result.Message;
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = result.ErrorMessage ?? "Could not reset password.";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error resetting password for DeliveryBoyId {DeliveryBoyId}.", deliveryBoyId);
+                TempData["ErrorMessage"] = "An unexpected error occurred while resetting the password.";
+            }
+
+            return RedirectToAction(nameof(Details), new { id = deliveryBoyId });
+        }
 
         [HttpGet]
         public IActionResult Compensation(int? id)

@@ -16,4 +16,15 @@ namespace Dairy_Management_System.Services
         /// </summary>
         Task<IReadOnlyList<RouteLookupModel>> GetActiveRoutesLookupAsync(CancellationToken cancellationToken = default);
     }
+
+    /// <summary>
+    /// Extended service contract for Admin Route CRUD and activation management.
+    /// </summary>
+    public interface IRouteManagementService
+    {
+        Task<IReadOnlyList<RouteManagementItemModel>> GetAllRoutesAsync(CancellationToken cancellationToken = default);
+        Task<RouteOperationResult> CreateRouteAsync(RouteFormModel model, int adminUserId, CancellationToken cancellationToken = default);
+        Task<RouteOperationResult> UpdateRouteAsync(RouteFormModel model, int adminUserId, CancellationToken cancellationToken = default);
+        Task<RouteOperationResult> SetRouteActiveStatusAsync(int routeId, bool isActive, int adminUserId, CancellationToken cancellationToken = default);
+    }
 }

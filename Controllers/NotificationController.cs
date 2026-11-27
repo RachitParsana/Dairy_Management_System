@@ -182,6 +182,34 @@ namespace Dairy_Management_System.Controllers
             }
         }
 
+        /// <summary>
+        /// Marks all notifications targeting the authenticated delivery boy as acknowledged/read.
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "DeliveryBoy")]
+        public async Task<IActionResult> MarkAllRead(CancellationToken ct = default)
+        {
+            int userId = GetCurrentUserId();
+            if (userId <= 0)
+            {
+                return RedirectToAction("DeliveryBoyLogin", "Auth");
+            }
+
+            try
+            {
+                await _notificationService.MarkAllReadAsync(userId, "DeliveryBoy", null, null, ct).ConfigureAwait(false);
+                TempData["SuccessMessage"] = "All notifications have been marked as acknowledged.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to mark all notifications read for UserId: {UserId}", userId);
+                TempData["ErrorMessage"] = "Failed to mark notifications as read. Please try again.";
+            }
+
+            return RedirectToAction(nameof(DeliveryBoyNotifications));
+        }
+
         #endregion
 
         #region Shared Endpoints

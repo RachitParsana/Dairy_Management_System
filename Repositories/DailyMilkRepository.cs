@@ -18,7 +18,7 @@ namespace Dairy_Management_System.Repositories
     /// Manages daily milk runsheets, batch submissions, composite cursor continuous scrolling,
     /// effective-dated commission resolution, and immutable audit logs.
     /// </summary>
-    public class DailyMilkRepository : IDailyMilkRepository
+    public class DailyMilkRepository : IDailyMilkRepository, IDailyMilkBatchAdminRepository
     {
         private readonly ISqlConnectionFactory _connectionFactory;
         private readonly ILogger<DailyMilkRepository> _logger;
@@ -1063,6 +1063,106 @@ namespace Dairy_Management_System.Repositories
                 RevokedAt = reader.IsDBNull(reader.GetOrdinal("RevokedAt")) ? null : reader.GetDateTime(reader.GetOrdinal("RevokedAt")),
                 RevokeReason = reader.IsDBNull(reader.GetOrdinal("RevokeReason")) ? null : reader.GetString(reader.GetOrdinal("RevokeReason"))
             };
+        }
+
+        #endregion
+
+        #region Admin Batch Lock & Unlock Management
+
+        public async Task<IReadOnlyList<DailyMilkBatchAdminItemDto>> GetBatchesForAdminAsync(
+            DateOnly? entryDate,
+            string? shift,
+            int? deliveryBoyId,
+            string? status = null,
+            int limit = 50,
+            CancellationToken cancellationToken = default)
+        {
+            var list = new List<DailyMilkBatchAdminItemDto>();
+
+            await using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+            await using var command = new SqlCommand("[dbo].[usp_DailyMilk_GetBatchesForAdmin]", connection)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            command.Parameters.Add("@EntryDate", SqlDbType.Date).Value = entryDate.HasValue
+                ? entryDate.Value.ToDateTime(TimeOnly.MinValue)
+                : DBNull.Value;
+            command.Parameters.Add("@Shift", SqlDbType.NVarChar, 20).Value = string.IsNullOrWhiteSpace(shift) ? DBNull.Value : shift.Trim();
+            command.Parameters.Add("@DeliveryBoyId", SqlDbType.Int).Value = (object?)deliveryBoyId ?? DBNull.Value;
+            command.Parameters.Add("@Status", SqlDbType.NVarChar, 20).Value = string.IsNullOrWhiteSpace(status) ? DBNull.Value : status.Trim();
+            command.Parameters.Add("@Limit", SqlDbType.Int).Value = limit;
+
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            int ordBatchId = reader.GetOrdinal("BatchId");
+            int ordBoyId = reader.GetOrdinal("DeliveryBoyId");
+            int ordBoyName = reader.GetOrdinal("DeliveryBoyName");
+            int ordBoyPhone = reader.GetOrdinal("DeliveryBoyPhone");
+            int ordRouteId = reader.GetOrdinal("RouteId");
+            int ordRouteName = reader.GetOrdinal("RouteName");
+            int ordDate = reader.GetOrdinal("EntryDate");
+            int ordShift = reader.GetOrdinal("Shift");
+            int ordStatus = reader.GetOrdinal("Status");
+            int ordTotalCust = reader.GetOrdinal("TotalAssignedCustomers");
+            int ordComp = reader.GetOrdinal("CompletedCount");
+            int ordPend = reader.GetOrdinal("PendingCount");
+            int ordNotDel = reader.GetOrdinal("NotDeliveredCount");
+            int ordLitres = reader.GetOrdinal("TotalLiquidVolumeLitres");
+            int ordAmt = reader.GetOrdinal("TotalAmount");
+            int ordSubAt = reader.GetOrdinal("SubmittedAt");
+            int ordSubBy = reader.GetOrdinal("SubmittedByName");
+            int ordBillLock = reader.GetOrdinal("HasPublishedBillLock");
+            int ordCompLock = reader.GetOrdinal("HasFinalizedCompensationLock");
+
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                list.Add(new DailyMilkBatchAdminItemDto
+                {
+                    BatchId = reader.GetInt64(ordBatchId),
+                    DeliveryBoyId = reader.GetInt32(ordBoyId),
+                    DeliveryBoyName = reader.GetString(ordBoyName),
+                    DeliveryBoyPhone = reader.GetString(ordBoyPhone),
+                    RouteId = reader.GetInt32(ordRouteId),
+                    RouteName = reader.GetString(ordRouteName),
+                    EntryDate = DateOnly.FromDateTime(reader.GetDateTime(ordDate)),
+                    Shift = reader.GetString(ordShift),
+                    Status = reader.GetString(ordStatus),
+                    TotalAssignedCustomers = reader.GetInt32(ordTotalCust),
+                    CompletedCount = reader.GetInt32(ordComp),
+                    PendingCount = reader.GetInt32(ordPend),
+                    NotDeliveredCount = reader.GetInt32(ordNotDel),
+                    TotalLiquidVolumeLitres = reader.GetDecimal(ordLitres),
+                    TotalAmount = reader.GetDecimal(ordAmt),
+                    SubmittedAt = reader.IsDBNull(ordSubAt) ? null : reader.GetDateTime(ordSubAt),
+                    SubmittedByName = reader.IsDBNull(ordSubBy) ? null : reader.GetString(ordSubBy),
+                    HasPublishedBillLock = reader.GetBoolean(ordBillLock),
+                    HasFinalizedCompensationLock = reader.GetBoolean(ordCompLock)
+                });
+            }
+
+            return list;
+        }
+
+        public async Task UnlockBatchAsync(
+            long batchId,
+            string unlockReason,
+            int adminUserId,
+            CancellationToken cancellationToken = default)
+        {
+            await ExecuteWithDeadlockRetryAsync(async () =>
+            {
+                await using var connection = await _connectionFactory.CreateOpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+                await using var command = new SqlCommand("[dbo].[usp_DailyMilk_UnlockBatch]", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+
+                command.Parameters.Add("@BatchId", SqlDbType.BigInt).Value = batchId;
+                command.Parameters.Add("@UnlockReason", SqlDbType.NVarChar, 250).Value = unlockReason.Trim();
+                command.Parameters.Add("@AdminUserId", SqlDbType.Int).Value = adminUserId;
+
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }).ConfigureAwait(false);
         }
 
         #endregion

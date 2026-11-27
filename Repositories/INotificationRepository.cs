@@ -14,6 +14,7 @@ namespace Dairy_Management_System.Repositories
         Task<bool> AcknowledgeAsync(long notificationId, int userId, CancellationToken ct = default);
         Task<IReadOnlyList<NotificationListItemDto>> GetUnacknowledgedBillPopupsAsync(int deliveryBoyId, int userId, CancellationToken ct = default);
         Task<bool> MarkPopupSeenAsync(long notificationId, int userId, CancellationToken ct = default);
+        Task<bool> MarkAllReadAsync(int userId, string role, int? deliveryBoyId, int? routeId, CancellationToken ct = default);
         Task<IReadOnlyList<NotificationListItemDto>> GetAdminOverviewAsync(int limit = 50, CancellationToken ct = default);
     }
 }

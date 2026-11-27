@@ -208,4 +208,25 @@ namespace Dairy_Management_System.Services
 
         #endregion
     }
+
+    /// <summary>
+    /// Sibling service contract for Administrator batch lock/unlock workflows.
+    /// Kept separate from IDailyMilkService so existing verification stubs remain compatible.
+    /// </summary>
+    public interface IDailyMilkBatchAdminService
+    {
+        Task<IReadOnlyList<DailyMilkBatchAdminItemDto>> GetBatchesForAdminAsync(
+            DateOnly? entryDate,
+            string? shift,
+            int? deliveryBoyId,
+            string? status = null,
+            int limit = 50,
+            CancellationToken cancellationToken = default);
+
+        Task<DailyMilkOperationResult> UnlockBatchAsync(
+            long batchId,
+            string unlockReason,
+            int adminUserId,
+            CancellationToken cancellationToken = default);
+    }
 }

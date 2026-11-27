@@ -25,9 +25,17 @@ namespace Dairy_Management_System.Models.DailyMilk
             new() { Succeeded = true, DeliveryId = deliveryId, AffectedCount = 1, Message = message };
 
         public static DailyMilkOperationResult Failure(string error) =>
-            new() { Succeeded = false, Errors = new List<string> { error } };
+            new() { Succeeded = false, Message = error, Errors = new List<string> { error } };
 
-        public static DailyMilkOperationResult Failure(IEnumerable<string> errors) =>
-            new() { Succeeded = false, Errors = new List<string>(errors) };
+        public static DailyMilkOperationResult Failure(IEnumerable<string> errors)
+        {
+            var errorList = new List<string>(errors);
+            return new()
+            {
+                Succeeded = false,
+                Message = errorList.Count > 0 ? string.Join(" ", errorList) : null,
+                Errors = errorList
+            };
+        }
     }
 }
